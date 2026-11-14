@@ -31,11 +31,77 @@ jobs:
           version: 1.31.1
           advanced-security: false
 
+  test:
+    name: Test (Node ${{ matrix.node }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run typecheck
+      # Coverage is measured once, on Linux.
+      - if: matrix.os == 'ubuntu-latest' && matrix.node == 24
+        run: npm run coverage
+      - if: matrix.os != 'ubuntu-latest' || matrix.node != 24
+        run: npm test
+
+  lint:
+    name: Lint, format and dist
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run lint
+      - run: npm run format:check
+      # The action runs the committed dist/, so it must be what the sources build.
+      - run: npm run build
+      - run: git diff --exit-code -- dist
+
+  # The action itself, from this checkout, on this pull request, on each runner OS.
+  action:
+    name: Action (${{ matrix.os }})
+    if: github.event_name == 'pull_request'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: tests
+        uses: ./
+      - name: Check the outputs
+        shell: bash
+        env:
+          REPORT_DIR: ${{ steps.tests.outputs.report-dir }}
+        run: test -s "$REPORT_DIR/report.json"
+
   # The one check the branch ruleset requires, so the ruleset stays the same when jobs change. List every other job
   # in `needs`.
   ci:
     if: always()
-    needs: [workflows]
+    needs: [workflows, test, lint, action]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
