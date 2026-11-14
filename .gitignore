@@ -2,25 +2,23 @@
 .env
 .env.*
 !.env.example
+.npmrc
 
 # Dependencies
 node_modules/
-.venv/
 
-# Build output, coverage and caches
-dist/
-build/
+# Coverage, packs and caches; dist/ is committed, because the action runs it
 coverage/
+*.tgz
 .cache/
 *.tsbuildinfo
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.ruff_cache/
-.mypy_cache/
 
 # Logs
 *.log
+
+# Keys
+*.pem
+*.key
 
 # OS and editor
 .DS_Store
