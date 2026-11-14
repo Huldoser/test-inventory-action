@@ -113,3 +113,7 @@ The scan reads source and configs; it runs nothing. These are out of its reach:
 
 Node.js 22.12 or newer on the runner, which every GitHub-hosted image has. Self-hosted runners may need
 `actions/setup-node` first. The action needs network access to npm to install test-inventory.
+
+## License
+
+[MIT](LICENSE), copyright © 2026 Andrey Rychkov.
