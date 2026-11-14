@@ -16,6 +16,7 @@ async function statuses(files: Record<string, string>, frameworks: Framework[]) 
 }
 
 describe("what the action says about a file a runner's config refuses", () => {
+  // The shared order cases are imported by a collected test, so the scan never refuses them.
   it('names why it leaves a refused file out, and reports the rest as not run', async () => {
     expect(
       await statuses(
@@ -34,7 +35,6 @@ describe("what the action says about a file a runner's config refuses", () => {
     ).toEqual({
       'scripts/replay-feed.ts': 'wont-run',
       'tests/fixtures/broker/fill.ts': 'fixture',
-      'tests/shared/order-cases.ts': 'helper',
       'tests/types/order.test-d.ts': 'type-test',
     });
   });
