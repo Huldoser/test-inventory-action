@@ -70,7 +70,7 @@ describe('scan mode, in a pull_request workflow', () => {
       pull_request: { number: 42, base: { sha: pr.base }, head: { sha: pr.head } },
     });
     expect(await main({ ...env, GITHUB_WORKSPACE: pr.root, MODE: 'scan' })).toBe('Scanned the pull request.');
-    expect(read(files.summary)).toContain("**1 test won't run** · 1 test turned off · 1 test file deleted.");
+    expect(read(files.summary)).toContain('| **1** | **1** | 0 | **1** | 0 |');
     expect(read(files.output)).toBe(
       `wont-run=1\nturned-off=1\nremoved=0\nasserts-nothing=0\nreport-dir=${files.reportDir}\n`,
     );
@@ -182,7 +182,9 @@ describe('comment mode, in a workflow_run workflow', () => {
     expect(await main(steps)).toBe('Comment on #42: created.');
     expect(github.comments).toHaveLength(1);
     expect(github.comments[0].body.startsWith(MARKER)).toBe(true);
-    expect(github.comments[0].body).toContain('`tests/strategies/mean-reversion.spec.ts`, 1 test');
+    expect(github.comments[0].body).toContain(
+      '| `tests/strategies/mean-reversion.spec.ts` | 1 | a new file no runner config collects |',
+    );
   });
 
   it('posts nothing when the pull request moved on from the commit the scan ran on', async () => {

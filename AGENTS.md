@@ -26,7 +26,8 @@ Notes for coding agents working in this repository.
 
 - The action never fails a check because of what it finds; teams gate on its outputs themselves.
 - Everything from the scanned project, such as titles, paths, conditions and reasons, reaches Markdown only through
-  `text()` or `code()` in `src/render.ts`.
+  `text()` or `code()` in `src/render.ts`, and into a table only through `table()`, which escapes the `|` that would
+  end a cell.
 - The comment step treats `report.json` as untrusted: a fork's workflow writes it. `parseReport` checks every field,
   and the comment is posted only when the pull request is at the commit the scan ran on.
 - Inputs reach scripts through `env:`, never `${{ }}` inside `run:`.

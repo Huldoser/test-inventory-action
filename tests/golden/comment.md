@@ -1,64 +1,81 @@
 <!-- test-inventory-action -->
-### Test changes
+### <picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Huldoser/test-inventory/v0.10.4/docs/public/mark-small-dark.svg"><img src="https://raw.githubusercontent.com/Huldoser/test-inventory/v0.10.4/docs/public/mark-small-light.svg" alt="" width="20" height="20" align="top"></picture> Test changes
 
-**7 tests won't run** · 2 tests turned off · 1 test removed · 1 test file deleted · 1 test with no assertions left.
+| Won't run | Turned off | Removed | Test files deleted | No assertions left |
+| :-: | :-: | :-: | :-: | :-: |
+| **7** | **2** | **1** | **1** | **1** |
 
-#### Won't run
+#### Won't run · [`file-not-run`](https://huldoser.github.io/test-inventory/reference/diagnostics)
 
-- `tests/strategies/mean-reversion.spec.ts`, 3 tests: a new file no runner config collects
-- `tests/pnl/fees.test.ts`, 4 tests: no runner config collects it any more
+| File | Tests | Why |
+| --- | --: | --- |
+| `tests/strategies/mean-reversion.spec.ts` | 3 | a new file no runner config collects |
+| `tests/pnl/fees.test.ts` | 4 | no runner config collects it any more |
 
-#### Turned off
+#### Turned off · [how the state is chosen](https://huldoser.github.io/test-inventory/reference/output#how-the-state-is-chosen)
 
-**skip**, when `process.env.MARKET === 'closed'`, reason: Alerts only trigger while the market is open
+| Test | Location | State | When or why |
+| --- | --- | --- | --- |
+| price alerts &gt; notifies when the price crosses above the alert | `tests/alerts.spec.ts:11` | `skip` | when `process.env.MARKET === 'closed'`; Alerts only trigger while the market is open |
+| login &gt; asks for a one-time code | `tests/login.spec.ts:25` | `fixme` | no reason given |
 
-- price alerts &gt; notifies when the price crosses above the alert `tests/alerts.spec.ts:11`
+#### Removed · [how tests are matched](https://huldoser.github.io/test-inventory/guide/diff#matches-and-changes)
 
-**fixme**, no reason given
-
-- login &gt; asks for a one-time code `tests/login.spec.ts:25`
-
-#### Removed
-
-- rsi &gt; is 0 when prices only fall `tests/indicators/rsi.test.ts:16`
+| Test | Location |
+| --- | --- |
+| rsi &gt; is 0 when prices only fall | `tests/indicators/rsi.test.ts:16` |
 
 #### Test files deleted
 
-- `tests/orders/limit-order.test.ts`, 1 test
+| File | Tests |
+| --- | --: |
+| `tests/orders/limit-order.test.ts` | 1 |
 
-#### No assertions left
+#### No assertions left · [`expectCount`](https://huldoser.github.io/test-inventory/reference/output#what-the-body-does)
 
-- portfolio &gt; reports unrealised P&amp;L `tests/portfolio/pnl.test.ts:2`: had 1 `expect` call
+| Test | Location | Had |
+| --- | --- | --- |
+| portfolio &gt; reports unrealised P&amp;L | `tests/portfolio/pnl.test.ts:2` | 1 `expect` call |
 
 <details><summary>Rewritten or replaced in the same file (1 file)</summary>
 
-- `tests/strategies/crossover.test.ts`: 1 removed, 2 added
+| File | Removed | Added |
+| --- | --- | --- |
+| `tests/strategies/crossover.test.ts` | 1 | 2 |
 
 </details>
 
 <details><summary>Renamed or moved (1)</summary>
 
-- latestSignal &gt; holds when there is no data at all → latestSignal &gt; holds when the data client returns no candles `tests/strategies/crossover.test.ts:60`
+| Test | Location | Was |
+| --- | --- | --- |
+| latestSignal &gt; holds when the data client returns no candles | `tests/strategies/crossover.test.ts:60` | latestSignal &gt; holds when there is no data at all |
 
 </details>
 
 <details><summary>Tests whose helpers or source changed (8)</summary>
 
-- `src/pnl/fees.ts`, 7 tests
-- `src/market-data/client.ts`: latestSignal &gt; asks for 120 days of candles `tests/strategies/crossover.test.ts:47`
+| Changed file | Tests |
+| --- | --- |
+| `src/pnl/fees.ts` | 7 |
+| `src/market-data/client.ts` | latestSignal &gt; asks for 120 days of candles `tests/strategies/crossover.test.ts:47` |
 
 </details>
 
 <details><summary>Fewer assertions (1)</summary>
 
-- fees &gt; adds the SEC fee only to sales `tests/pnl/fees.test.ts:13`: 2 → 1 `expect` calls
+| Test | Location | `expect` calls |
+| --- | --- | --- |
+| fees &gt; adds the SEC fee only to sales | `tests/pnl/fees.test.ts:13` | 2 → 1 |
 
 </details>
 
 <details><summary>Added (1)</summary>
 
-- orders &gt; fills a market order at the last trade `tests/orders/market-order.test.ts:4`
+| Test | Location |
+| --- | --- |
+| orders &gt; fills a market order at the last trade | `tests/orders/market-order.test.ts:4` |
 
 </details>
 
-<sub>vitest 5.0.5, playwright · base 794d084 → head 36c23aa · 412 tests scanned in 3.2 s without running them · test-inventory 0.10.4</sub>
+<sub>[test-inventory](https://huldoser.github.io/test-inventory/) 0.10.4 · vitest 5.0.5, playwright · 412 tests read in 3.2 s, none run · base 794d084 → head 36c23aa</sub>

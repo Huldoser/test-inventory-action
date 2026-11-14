@@ -15,6 +15,10 @@ export interface ScanFacts {
 
 const LIST_LIMIT = 50;
 const HELPER_NAMES = 3;
+const DOCS = 'https://huldoser.github.io/test-inventory';
+// The logo files of the release the action pins, so a comment keeps its logo whatever later changes on main.
+const ASSETS = 'https://raw.githubusercontent.com/Huldoser/test-inventory/v0.10.4/docs/public';
+const MARK = `<picture><source media="(prefers-color-scheme: dark)" srcset="${ASSETS}/mark-small-dark.svg"><img src="${ASSETS}/mark-small-light.svg" alt="" width="20" height="20" align="top"></picture>`;
 
 /** Text from the scanned project, such as a title or a reason, shown as plain text: no Markdown, HTML or mention. */
 export function text(value: string): string {
@@ -37,14 +41,22 @@ export function code(value: string): string {
 }
 
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`;
-const test = (item: TestRef) => `${text(item.name)} ${code(`${item.file}:${item.line}`)}`;
+const location = (item: TestRef) => code(`${item.file}:${item.line}`);
 
-/** A list, cut at the limit with a count of what it leaves out. */
-function list(items: string[]): string[] {
-  const shown = items.slice(0, LIST_LIMIT).map((item) => `- ${item}`);
-  if (items.length > LIST_LIMIT) shown.push(`- and ${items.length - LIST_LIMIT} more`);
-  return shown;
+/**
+ * A table, cut at the limit with a row that counts what it leaves out. A `|` in a cell would end it, in a code span too,
+ * so each one is escaped.
+ */
+function table(header: string[], rows: string[][], align: string[] = header.map(() => '---')): string[] {
+  const line = (cells: string[]) => `| ${cells.map((cell) => cell.replaceAll('|', '\\|')).join(' | ')} |`;
+  const shown = rows.slice(0, LIST_LIMIT).map(line);
+  if (rows.length > LIST_LIMIT)
+    shown.push(line([`and ${rows.length - LIST_LIMIT} more`, ...header.slice(1).map(() => '')]));
+  return [line(header), `| ${align.join(' | ')} |`, ...shown];
 }
+
+/** A section's heading, linked to the page of the test-inventory docs that explains it. */
+const heading = (title: string, docs: string, label: string) => `#### ${title} · [${label}](${DOCS}/${docs})`;
 
 /** How long a report may be, and what it says where it is cut. */
 export interface Limit {
@@ -65,95 +77,129 @@ export const SUMMARY_LIMIT: Limit = {
 
 /** The comment or job summary for a pull request's test changes. */
 export function renderReport(sections: Sections, facts: ScanFacts, limit: Limit): string {
-  const lines = [MARKER, '### Test changes', ''];
+  const lines = [MARKER, `### ${MARK} Test changes`, ''];
   if (isQuiet(sections)) {
     lines.push('No test stops running, is turned off, removed or left without assertions in this pull request.', '');
   } else {
-    const turnedOff = sections.turnedOff.reduce((sum, group) => sum + group.tests.length, 0);
-    const deleted = sections.deletedFiles.reduce((sum, file) => sum + file.tests, 0);
-    const wontRun = sections.wontRun.reduce((sum, file) => sum + file.tests, 0);
-    const headline = [
-      wontRun > 0 && `**${plural(wontRun, 'test')} won't run**`,
-      turnedOff > 0 && `${plural(turnedOff, 'test')} turned off`,
-      sections.removed.length > 0 && `${plural(sections.removed.length, 'test')} removed`,
-      deleted > 0 && `${plural(sections.deletedFiles.length, 'test file')} deleted`,
-      sections.assertsNothing.length > 0 && `${plural(sections.assertsNothing.length, 'test')} with no assertions left`,
-    ].filter(Boolean);
-    lines.push(`${headline.join(' · ')}.`, '');
+    const counts = [
+      sections.wontRun.reduce((sum, file) => sum + file.tests, 0),
+      sections.turnedOff.reduce((sum, group) => sum + group.tests.length, 0),
+      sections.removed.length,
+      sections.deletedFiles.length,
+      sections.assertsNothing.length,
+    ];
+    lines.push(
+      ...table(
+        ["Won't run", 'Turned off', 'Removed', 'Test files deleted', 'No assertions left'],
+        [counts.map((count) => (count > 0 ? `**${count}**` : '0'))],
+        counts.map(() => ':-:'),
+      ),
+      '',
+    );
   }
   if (sections.wontRun.length > 0) {
-    lines.push("#### Won't run", '');
+    lines.push(heading("Won't run", 'reference/diagnostics', '`file-not-run`'), '');
+    const why = (change: 'new' | 'stopped') =>
+      change === 'new' ? 'a new file no runner config collects' : 'no runner config collects it any more';
     lines.push(
-      ...list(
-        sections.wontRun.map(
-          (file) =>
-            `${code(file.file)}, ${plural(file.tests, 'test')}: ${
-              file.change === 'new' ? 'a new file no runner config collects' : 'no runner config collects it any more'
-            }`,
-        ),
+      ...table(
+        ['File', 'Tests', 'Why'],
+        sections.wontRun.map((file) => [code(file.file), String(file.tests), why(file.change)]),
+        ['---', '--:', '---'],
       ),
       '',
     );
   }
   if (sections.turnedOff.length > 0) {
-    lines.push('#### Turned off', '');
-    for (const group of sections.turnedOff) {
-      const why = [
-        group.condition !== null && `when ${code(group.condition)}`,
-        group.reason !== null && `reason: ${text(group.reason)}`,
-      ].filter(Boolean);
-      lines.push(`**${group.state}**${why.length > 0 ? `, ${why.join(', ')}` : ', no reason given'}`, '');
-      lines.push(...list(group.tests.map(test)), '');
-    }
+    lines.push(heading('Turned off', 'reference/output#how-the-state-is-chosen', 'how the state is chosen'), '');
+    const rows = sections.turnedOff.flatMap((group) => {
+      const why =
+        [group.condition !== null && `when ${code(group.condition)}`, group.reason !== null && text(group.reason)]
+          .filter(Boolean)
+          .join('; ') || 'no reason given';
+      return group.tests.map((item) => [text(item.name), location(item), code(group.state), why]);
+    });
+    lines.push(...table(['Test', 'Location', 'State', 'When or why'], rows), '');
   }
-  if (sections.removed.length > 0) lines.push('#### Removed', '', ...list(sections.removed.map(test)), '');
-  if (sections.deletedFiles.length > 0) {
-    lines.push('#### Test files deleted', '');
-    lines.push(...list(sections.deletedFiles.map((file) => `${code(file.file)}, ${plural(file.tests, 'test')}`)), '');
-  }
-  if (sections.assertsNothing.length > 0) {
-    lines.push('#### No assertions left', '');
+  if (sections.removed.length > 0) {
+    lines.push(heading('Removed', 'guide/diff#matches-and-changes', 'how tests are matched'), '');
     lines.push(
-      ...list(sections.assertsNothing.map((item) => `${test(item)}: had ${plural(item.from, '`expect` call')}`)),
+      ...table(
+        ['Test', 'Location'],
+        sections.removed.map((item) => [text(item.name), location(item)]),
+      ),
       '',
     );
   }
-  const details = (title: string, items: string[]) => {
-    if (items.length > 0) lines.push(`<details><summary>${title}</summary>`, '', ...list(items), '', '</details>', '');
+  if (sections.deletedFiles.length > 0) {
+    lines.push('#### Test files deleted', '');
+    lines.push(
+      ...table(
+        ['File', 'Tests'],
+        sections.deletedFiles.map((file) => [code(file.file), String(file.tests)]),
+        ['---', '--:'],
+      ),
+      '',
+    );
+  }
+  if (sections.assertsNothing.length > 0) {
+    lines.push(heading('No assertions left', 'reference/output#what-the-body-does', '`expectCount`'), '');
+    lines.push(
+      ...table(
+        ['Test', 'Location', 'Had'],
+        sections.assertsNothing.map((item) => [text(item.name), location(item), plural(item.from, '`expect` call')]),
+      ),
+      '',
+    );
+  }
+  const details = (title: string, header: string[], rows: string[][]) => {
+    if (rows.length > 0)
+      lines.push(`<details><summary>${title}</summary>`, '', ...table(header, rows), '', '</details>', '');
   };
   details(
     `Rewritten or replaced in the same file (${plural(sections.rewritten.length, 'file')})`,
-    sections.rewritten.map((file) => `${code(file.file)}: ${file.removed} removed, ${file.added} added`),
+    ['File', 'Removed', 'Added'],
+    sections.rewritten.map((file) => [code(file.file), String(file.removed), String(file.added)]),
   );
   details(
     `Renamed or moved (${sections.renamed.length})`,
-    sections.renamed.map(({ from, to }) =>
-      from.name === to.name
-        ? `${text(to.name)}: ${code(from.file)} → ${code(`${to.file}:${to.line}`)}`
-        : `${text(from.name)} → ${test(to)}`,
-    ),
+    ['Test', 'Location', 'Was'],
+    sections.renamed.map(({ from, to }) => [
+      text(to.name),
+      location(to),
+      [from.name !== to.name && text(from.name), from.file !== to.file && code(from.file)]
+        .filter(Boolean)
+        .join(', in '),
+    ]),
   );
   const helperTests = sections.helpersChanged.reduce((sum, group) => sum + group.tests.length, 0);
   details(
     `Tests whose helpers or source changed (${helperTests})`,
+    ['Changed file', 'Tests'],
     // A shared helper can reach thousands of tests: those are counted, and only a few are named.
     [...sections.helpersChanged]
       .sort((a, b) => b.tests.length - a.tests.length)
-      .map((group) =>
+      .map((group) => [
+        code(group.file),
         group.tests.length > HELPER_NAMES
-          ? `${code(group.file)}, ${plural(group.tests.length, 'test')}`
-          : `${code(group.file)}: ${group.tests.map(test).join(', ')}`,
-      ),
+          ? String(group.tests.length)
+          : group.tests.map((item) => `${text(item.name)} ${location(item)}`).join(', '),
+      ]),
   );
   details(
     `Fewer assertions (${sections.fewerAssertions.length})`,
-    sections.fewerAssertions.map((item) => `${test(item)}: ${item.from} → ${item.to} \`expect\` calls`),
+    ['Test', 'Location', '`expect` calls'],
+    sections.fewerAssertions.map((item) => [text(item.name), location(item), `${item.from} → ${item.to}`]),
   );
-  details(`Added (${sections.added.length})`, sections.added.map(test));
+  details(
+    `Added (${sections.added.length})`,
+    ['Test', 'Location'],
+    sections.added.map((item) => [text(item.name), location(item)]),
+  );
   const runners = facts.runners.map((runner) =>
     text(runner.version ? `${runner.framework} ${runner.version}` : runner.framework),
   );
-  const footer = `<sub>${runners.join(', ')} · base ${facts.base.slice(0, 7)} → head ${facts.head.slice(0, 7)} · ${plural(facts.tests, 'test')} scanned in ${facts.seconds} s without running them · test-inventory ${text(facts.core)}</sub>`;
+  const footer = `<sub>[test-inventory](${DOCS}/) ${text(facts.core)} · ${runners.join(', ')} · ${plural(facts.tests, 'test')} read in ${facts.seconds} s, none run · base ${facts.base.slice(0, 7)} → head ${facts.head.slice(0, 7)}</sub>`;
   let body = lines.join('\n');
   if (body.length > limit.maxLength) {
     body = `${body.slice(0, body.lastIndexOf('\n', limit.maxLength))}\n\n${limit.cutNote}\n`;

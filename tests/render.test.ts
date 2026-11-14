@@ -88,13 +88,11 @@ describe('the comment and job summary', () => {
       FACTS,
       SUMMARY_LIMIT,
     );
-    expect(body.split('\n').slice(0, 5)).toEqual([
-      '<!-- test-inventory-action -->',
-      '### Test changes',
-      '',
-      'No test stops running, is turned off, removed or left without assertions in this pull request.',
-      '',
-    ]);
+    const [marker, title, , line] = body.split('\n');
+    expect(marker).toBe('<!-- test-inventory-action -->');
+    expect(title).toMatch(/^### <picture>.*mark-small-light\.svg.*<\/picture> Test changes$/);
+    expect(line).toBe('No test stops running, is turned off, removed or left without assertions in this pull request.');
+    expect(body).not.toContain("| Won't run |");
   });
 
   it('lists at most 50 tests in a section and cuts a report at its limit', () => {
@@ -105,7 +103,7 @@ describe('the comment and job summary', () => {
     expect(body).toContain('The report is cut here.');
     expect(body.length).toBeLessThan(2_400);
     const full = renderReport({ ...EMPTY, removed }, FACTS, SUMMARY_LIMIT);
-    expect(full).toContain('- and 10 more');
+    expect(full).toContain('| and 10 more |  |');
     expect(full).not.toContain('rejects case 50');
   });
 });
@@ -130,8 +128,21 @@ describe('a renamed or moved test', () => {
       SUMMARY_LIMIT,
     );
     expect(body).toContain(
-      '- fees &gt; charges tier 1 → fees &gt; charges the first tier `tests/pnl/fees.test.ts:5`\n' +
-        '- crossover &gt; buys on a golden cross: `tests/crossover.test.ts` → `tests/strategies/crossover.test.ts:8`\n',
+      '| fees &gt; charges the first tier | `tests/pnl/fees.test.ts:5` | fees &gt; charges tier 1 |\n' +
+        '| crossover &gt; buys on a golden cross | `tests/strategies/crossover.test.ts:8` | `tests/crossover.test.ts` |\n',
+    );
+  });
+});
+
+describe('a table cell', () => {
+  it('escapes a pipe in a title or a path, which would end the cell, in a code span too', () => {
+    const body = renderReport(
+      { ...EMPTY, removed: [t('quotes > splits "BRK.A | BRK.B" into two symbols', 'tests/quotes|legacy.test.ts', 9)] },
+      FACTS,
+      SUMMARY_LIMIT,
+    );
+    expect(body).toContain(
+      '| quotes &gt; splits "BRK.A \\| BRK.B" into two symbols | `tests/quotes\\|legacy.test.ts:9` |',
     );
   });
 });
