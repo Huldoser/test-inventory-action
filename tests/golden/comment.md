@@ -56,9 +56,9 @@
 <details><summary>Tests whose helpers or source changed (8)</summary>
 
 | Changed file | Tests |
-| --- | --- |
+| --- | --: |
 | `src/pnl/fees.ts` | 7 |
-| `src/market-data/client.ts` | latestSignal &gt; asks for 120 days of candles `tests/strategies/crossover.test.ts:47` |
+| `src/market-data/client.ts` | 1 |
 
 </details>
 

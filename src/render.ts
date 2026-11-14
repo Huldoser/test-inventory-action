@@ -14,7 +14,6 @@ export interface ScanFacts {
 }
 
 const LIST_LIMIT = 50;
-const HELPER_NAMES = 3;
 const DOCS = 'https://huldoser.github.io/test-inventory';
 // The logo files of the release the action pins, so a comment keeps its logo whatever later changes on main.
 const ASSETS = 'https://raw.githubusercontent.com/Huldoser/test-inventory/v0.10.4/docs/public';
@@ -152,9 +151,9 @@ export function renderReport(sections: Sections, facts: ScanFacts, limit: Limit)
       '',
     );
   }
-  const details = (title: string, header: string[], rows: string[][]) => {
+  const details = (title: string, header: string[], rows: string[][], align?: string[]) => {
     if (rows.length > 0)
-      lines.push(`<details><summary>${title}</summary>`, '', ...table(header, rows), '', '</details>', '');
+      lines.push(`<details><summary>${title}</summary>`, '', ...table(header, rows, align), '', '</details>', '');
   };
   details(
     `Rewritten or replaced in the same file (${plural(sections.rewritten.length, 'file')})`,
@@ -176,15 +175,11 @@ export function renderReport(sections: Sections, facts: ScanFacts, limit: Limit)
   details(
     `Tests whose helpers or source changed (${helperTests})`,
     ['Changed file', 'Tests'],
-    // A shared helper can reach thousands of tests: those are counted, and only a few are named.
+    // A shared helper can reach thousands of tests, so each changed file gets a count; report.json names them.
     [...sections.helpersChanged]
       .sort((a, b) => b.tests.length - a.tests.length)
-      .map((group) => [
-        code(group.file),
-        group.tests.length > HELPER_NAMES
-          ? String(group.tests.length)
-          : group.tests.map((item) => `${text(item.name)} ${location(item)}`).join(', '),
-      ]),
+      .map((group) => [code(group.file), String(group.tests.length)]),
+    ['---', '--:'],
   );
   details(
     `Fewer assertions (${sections.fewerAssertions.length})`,

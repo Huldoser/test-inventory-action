@@ -2,7 +2,6 @@ import { isQuiet } from "./sections.js";
 /** The marker that finds the action's comment again on the next push. */
 export const MARKER = '<!-- test-inventory-action -->';
 const LIST_LIMIT = 50;
-const HELPER_NAMES = 3;
 const DOCS = 'https://huldoser.github.io/test-inventory';
 // The logo files of the release the action pins, so a comment keeps its logo whatever later changes on main.
 const ASSETS = 'https://raw.githubusercontent.com/Huldoser/test-inventory/v0.10.4/docs/public';
@@ -93,9 +92,9 @@ export function renderReport(sections, facts, limit) {
         lines.push(heading('No assertions left', 'reference/output#what-the-body-does', '`expectCount`'), '');
         lines.push(...table(['Test', 'Location', 'Had'], sections.assertsNothing.map((item) => [text(item.name), location(item), plural(item.from, '`expect` call')])), '');
     }
-    const details = (title, header, rows) => {
+    const details = (title, header, rows, align) => {
         if (rows.length > 0)
-            lines.push(`<details><summary>${title}</summary>`, '', ...table(header, rows), '', '</details>', '');
+            lines.push(`<details><summary>${title}</summary>`, '', ...table(header, rows, align), '', '</details>', '');
     };
     details(`Rewritten or replaced in the same file (${plural(sections.rewritten.length, 'file')})`, ['File', 'Removed', 'Added'], sections.rewritten.map((file) => [code(file.file), String(file.removed), String(file.added)]));
     details(`Renamed or moved (${sections.renamed.length})`, ['Test', 'Location', 'Was'], sections.renamed.map(({ from, to }) => [
@@ -107,15 +106,10 @@ export function renderReport(sections, facts, limit) {
     ]));
     const helperTests = sections.helpersChanged.reduce((sum, group) => sum + group.tests.length, 0);
     details(`Tests whose helpers or source changed (${helperTests})`, ['Changed file', 'Tests'], 
-    // A shared helper can reach thousands of tests: those are counted, and only a few are named.
+    // A shared helper can reach thousands of tests, so each changed file gets a count; report.json names them.
     [...sections.helpersChanged]
         .sort((a, b) => b.tests.length - a.tests.length)
-        .map((group) => [
-        code(group.file),
-        group.tests.length > HELPER_NAMES
-            ? String(group.tests.length)
-            : group.tests.map((item) => `${text(item.name)} ${location(item)}`).join(', '),
-    ]));
+        .map((group) => [code(group.file), String(group.tests.length)]), ['---', '--:']);
     details(`Fewer assertions (${sections.fewerAssertions.length})`, ['Test', 'Location', '`expect` calls'], sections.fewerAssertions.map((item) => [text(item.name), location(item), `${item.from} → ${item.to}`]));
     details(`Added (${sections.added.length})`, ['Test', 'Location'], sections.added.map((item) => [text(item.name), location(item)]));
     const runners = facts.runners.map((runner) => text(runner.version ? `${runner.framework} ${runner.version}` : runner.framework));
