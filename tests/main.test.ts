@@ -70,7 +70,7 @@ describe('scan mode, in a pull_request workflow', () => {
       pull_request: { number: 42, base: { sha: pr.base }, head: { sha: pr.head } },
     });
     expect(await main({ ...env, GITHUB_WORKSPACE: pr.root, MODE: 'scan' })).toBe('Scanned the pull request.');
-    expect(read(files.summary)).toContain("**1 test won't run** · 1 turned off · 1 test file deleted.");
+    expect(read(files.summary)).toContain("**1 test won't run** · 1 test turned off · 1 test file deleted.");
     expect(read(files.output)).toBe(
       `wont-run=1\nturned-off=1\nremoved=0\nasserts-nothing=0\nreport-dir=${files.reportDir}\n`,
     );

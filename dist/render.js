@@ -2,6 +2,7 @@ import { isQuiet } from "./sections.js";
 /** The marker that finds the action's comment again on the next push. */
 export const MARKER = '<!-- test-inventory-action -->';
 const LIST_LIMIT = 50;
+const HELPER_NAMES = 3;
 /** Text from the scanned project, such as a title or a reason, shown as plain text: no Markdown, HTML or mention. */
 export function text(value) {
     return value
@@ -51,10 +52,10 @@ export function renderReport(sections, facts, limit) {
         const wontRun = sections.wontRun.reduce((sum, file) => sum + file.tests, 0);
         const headline = [
             wontRun > 0 && `**${plural(wontRun, 'test')} won't run**`,
-            turnedOff > 0 && `${turnedOff} turned off`,
-            sections.removed.length > 0 && `${sections.removed.length} removed`,
+            turnedOff > 0 && `${plural(turnedOff, 'test')} turned off`,
+            sections.removed.length > 0 && `${plural(sections.removed.length, 'test')} removed`,
             deleted > 0 && `${plural(sections.deletedFiles.length, 'test file')} deleted`,
-            sections.assertsNothing.length > 0 && `${sections.assertsNothing.length} with no assertions left`,
+            sections.assertsNothing.length > 0 && `${plural(sections.assertsNothing.length, 'test')} with no assertions left`,
         ].filter(Boolean);
         lines.push(`${headline.join(' · ')}.`, '');
     }
@@ -69,7 +70,7 @@ export function renderReport(sections, facts, limit) {
                 group.condition !== null && `when ${code(group.condition)}`,
                 group.reason !== null && `reason: ${text(group.reason)}`,
             ].filter(Boolean);
-            lines.push(`${group.state}${why.length > 0 ? `, ${why.join(', ')}` : ', no reason given'}:`, '');
+            lines.push(`**${group.state}**${why.length > 0 ? `, ${why.join(', ')}` : ', no reason given'}`, '');
             lines.push(...list(group.tests.map(test)), '');
         }
     }
@@ -88,12 +89,17 @@ export function renderReport(sections, facts, limit) {
             lines.push(`<details><summary>${title}</summary>`, '', ...list(items), '', '</details>', '');
     };
     details(`Rewritten or replaced in the same file (${plural(sections.rewritten.length, 'file')})`, sections.rewritten.map((file) => `${code(file.file)}: ${file.removed} removed, ${file.added} added`));
-    details(`Renamed or moved (${sections.renamed.length})`, sections.renamed.map((pair) => `${text(pair.from.name)} → ${test(pair.to)}`));
+    details(`Renamed or moved (${sections.renamed.length})`, sections.renamed.map(({ from, to }) => from.name === to.name
+        ? `${text(to.name)}: ${code(from.file)} → ${code(`${to.file}:${to.line}`)}`
+        : `${text(from.name)} → ${test(to)}`));
     const helperTests = sections.helpersChanged.reduce((sum, group) => sum + group.tests.length, 0);
-    details(`Tests whose helpers or source changed (${helperTests})`, sections.helpersChanged.map((group) => {
-        const names = group.tests.slice(0, 5).map(test).join(', ');
-        return `${code(group.file)}, ${plural(group.tests.length, 'test')}: ${names}${group.tests.length > 5 ? ` and ${group.tests.length - 5} more` : ''}`;
-    }));
+    details(`Tests whose helpers or source changed (${helperTests})`, 
+    // A shared helper can reach thousands of tests: those are counted, and only a few are named.
+    [...sections.helpersChanged]
+        .sort((a, b) => b.tests.length - a.tests.length)
+        .map((group) => group.tests.length > HELPER_NAMES
+        ? `${code(group.file)}, ${plural(group.tests.length, 'test')}`
+        : `${code(group.file)}: ${group.tests.map(test).join(', ')}`));
     details(`Fewer assertions (${sections.fewerAssertions.length})`, sections.fewerAssertions.map((item) => `${test(item)}: ${item.from} → ${item.to} \`expect\` calls`));
     details(`Added (${sections.added.length})`, sections.added.map(test));
     const runners = facts.runners.map((runner) => text(runner.version ? `${runner.framework} ${runner.version}` : runner.framework));

@@ -110,6 +110,32 @@ describe('the comment and job summary', () => {
   });
 });
 
+describe('a renamed or moved test', () => {
+  it('shows the new title when the title changed, and the files when only the file did', () => {
+    const body = renderReport(
+      {
+        ...EMPTY,
+        renamed: [
+          {
+            from: t('fees > charges tier 1', 'tests/pnl/fees.test.ts', 5),
+            to: t('fees > charges the first tier', 'tests/pnl/fees.test.ts', 5),
+          },
+          {
+            from: t('crossover > buys on a golden cross', 'tests/crossover.test.ts', 12),
+            to: t('crossover > buys on a golden cross', 'tests/strategies/crossover.test.ts', 8),
+          },
+        ],
+      },
+      FACTS,
+      SUMMARY_LIMIT,
+    );
+    expect(body).toContain(
+      '- fees &gt; charges tier 1 → fees &gt; charges the first tier `tests/pnl/fees.test.ts:5`\n' +
+        '- crossover &gt; buys on a golden cross: `tests/crossover.test.ts` → `tests/strategies/crossover.test.ts:8`\n',
+    );
+  });
+});
+
 describe('text from the scanned project', () => {
   it('shows a title as plain text, with no Markdown, HTML or mention', () => {
     expect(text('fills **all** <script>alert(1)</script> for @desk-team & [docs](x) `code`\n~~now~~')).toBe(

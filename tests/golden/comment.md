@@ -1,7 +1,7 @@
 <!-- test-inventory-action -->
 ### Test changes
 
-**7 tests won't run** · 2 turned off · 1 removed · 1 test file deleted · 1 with no assertions left.
+**7 tests won't run** · 2 tests turned off · 1 test removed · 1 test file deleted · 1 test with no assertions left.
 
 #### Won't run
 
@@ -10,11 +10,11 @@
 
 #### Turned off
 
-skip, when `process.env.MARKET === 'closed'`, reason: Alerts only trigger while the market is open:
+**skip**, when `process.env.MARKET === 'closed'`, reason: Alerts only trigger while the market is open
 
 - price alerts &gt; notifies when the price crosses above the alert `tests/alerts.spec.ts:11`
 
-fixme, no reason given:
+**fixme**, no reason given
 
 - login &gt; asks for a one-time code `tests/login.spec.ts:25`
 
@@ -44,8 +44,8 @@ fixme, no reason given:
 
 <details><summary>Tests whose helpers or source changed (8)</summary>
 
-- `src/market-data/client.ts`, 1 test: latestSignal &gt; asks for 120 days of candles `tests/strategies/crossover.test.ts:47`
-- `src/pnl/fees.ts`, 7 tests: fees &gt; charges tier 1 `tests/pnl/fees.test.ts:5`, fees &gt; charges tier 2 `tests/pnl/fees.test.ts:9`, fees &gt; charges tier 3 `tests/pnl/fees.test.ts:13`, fees &gt; charges tier 4 `tests/pnl/fees.test.ts:17`, fees &gt; charges tier 5 `tests/pnl/fees.test.ts:21` and 2 more
+- `src/pnl/fees.ts`, 7 tests
+- `src/market-data/client.ts`: latestSignal &gt; asks for 120 days of candles `tests/strategies/crossover.test.ts:47`
 
 </details>
 
