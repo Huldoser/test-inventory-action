@@ -72,7 +72,8 @@ export function renderReport(sections, facts, limit) {
     }
     if (sections.turnedOff.length > 0) {
         lines.push(heading('Turned off', 'reference/output#how-the-state-is-chosen', 'how the state is chosen'), '');
-        const rows = sections.turnedOff.flatMap((group) => {
+        // Each group's tests share their state and why, so it heads their table rather than repeat in every row.
+        for (const group of sections.turnedOff) {
             const why = [
                 group.condition !== null && `when ${code(group.condition)}`,
                 group.was !== null && `always now; before, only when ${code(group.was)}`,
@@ -80,14 +81,12 @@ export function renderReport(sections, facts, limit) {
             ]
                 .filter(Boolean)
                 .join('; ') || 'no reason given';
-            return group.tests.map((item) => [
+            const rows = group.tests.map((item) => [
                 item.count > 1 ? `${text(item.name)} (${plural(item.count, 'test')})` : text(item.name),
                 location(item),
-                code(group.state),
-                why,
             ]);
-        });
-        lines.push(...table(['Test', 'Location', 'State', 'When or why'], rows), '');
+            lines.push(`${code(group.state)}: ${why}`, '', ...table(['Test', 'Location'], rows), '');
+        }
     }
     if (sections.removed.length > 0) {
         lines.push(heading('Removed', 'guide/diff#matches-and-changes', 'how tests are matched'), '');

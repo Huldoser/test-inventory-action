@@ -14,11 +14,23 @@
 
 #### Turned off · [how the state is chosen](https://huldoser.github.io/test-inventory/reference/output#how-the-state-is-chosen)
 
-| Test | Location | State | When or why |
-| --- | --- | --- | --- |
-| price alerts &gt; notifies when the price crosses above the alert | `tests/alerts.spec.ts:11` | `skip` | when `process.env.MARKET === 'closed'`; Alerts only trigger while the market is open |
-| login &gt; asks for a one-time code | `tests/login.spec.ts:25` | `fixme` | no reason given |
-| broker sandbox (2 tests) | `tests/broker/sandbox.test.ts:3` | `skip` | always now; before, only when `!(process.env.BROKER_API_KEY)` |
+`skip`: when `process.env.MARKET === 'closed'`; Alerts only trigger while the market is open
+
+| Test | Location |
+| --- | --- |
+| price alerts &gt; notifies when the price crosses above the alert | `tests/alerts.spec.ts:11` |
+
+`fixme`: no reason given
+
+| Test | Location |
+| --- | --- |
+| login &gt; asks for a one-time code | `tests/login.spec.ts:25` |
+
+`skip`: always now; before, only when `!(process.env.BROKER_API_KEY)`
+
+| Test | Location |
+| --- | --- |
+| broker sandbox (2 tests) | `tests/broker/sandbox.test.ts:3` |
 
 #### Removed · [how tests are matched](https://huldoser.github.io/test-inventory/guide/diff#matches-and-changes)
 
