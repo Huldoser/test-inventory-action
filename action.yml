@@ -1,4 +1,4 @@
-name: test-inventory
+name: Test changes by test-inventory
 description: Comments on each pull request with what it does to the tests, without running them.
 author: Andrey Rychkov
 branding:
