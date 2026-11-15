@@ -32,8 +32,8 @@ describe('the comment and job summary', () => {
   it('shows what needs a look and collapses the rest', async () => {
     const sections: Sections = {
       wontRun: [
-        { file: 'tests/strategies/mean-reversion.spec.ts', tests: 3, change: 'new' },
-        { file: 'tests/pnl/fees.test.ts', tests: 4, change: 'stopped' },
+        { file: 'tests/strategies/mean-reversion.spec.ts', tests: 3, change: 'new', config: 'vitest.config.ts' },
+        { file: 'tests/pnl/fees.test.ts', tests: 4, change: 'stopped', config: 'vitest.config.ts' },
       ],
       turnedOff: [
         {
@@ -114,8 +114,8 @@ describe('the comment and job summary', () => {
     expect(body).not.toContain("| Won't run |");
   });
 
-  it('lists at most 50 tests in a section and cuts a report at its limit', () => {
-    const removed = Array.from({ length: 60 }, (_, index) =>
+  it('shows 10 rows of a section, folds the next 50 under them, and cuts a report at its limit', () => {
+    const removed = Array.from({ length: 70 }, (_, index) =>
       t(`orders › rejects case ${index}`, 'tests/orders.test.ts', index + 1),
     );
     const body = renderReport(
@@ -127,8 +127,12 @@ describe('the comment and job summary', () => {
     expect(body).toContain('The report is cut here.');
     expect(body.length).toBeLessThan(2_400);
     const full = renderReport({ ...EMPTY, removed }, FACTS, SUMMARY_LIMIT, SOURCE);
-    expect(full).toContain('| and 10 more |  |');
-    expect(full).not.toContain('rejects case 50');
+    const [shown, folded] = full.split('<details><summary>Show 60 more</summary>');
+    expect(shown).toContain('rejects case 9 |');
+    expect(shown).not.toContain('rejects case 10 |');
+    expect(folded).toContain('rejects case 59 |');
+    expect(folded).toContain('| and 10 more |  |');
+    expect(folded).not.toContain('rejects case 60 |');
   });
 });
 
@@ -179,7 +183,7 @@ describe('the verdict at the top', () => {
     const body = renderReport(
       {
         ...EMPTY,
-        wontRun: [{ file: 'tests/strategies/pairs-trading.spec.ts', tests: 1, change: 'new' }],
+        wontRun: [{ file: 'tests/strategies/pairs-trading.spec.ts', tests: 1, change: 'new', config: null }],
         turnedOff: [
           {
             state: 'skip',

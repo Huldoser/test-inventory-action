@@ -56,7 +56,12 @@ export function parseReport(value: unknown): Report {
       wontRun: array(sections.wontRun, 'wontRun', (entry, at) => {
         const file = object(entry, at);
         const change = file.change === 'new' || file.change === 'stopped' ? file.change : invalid(`${at}.change`);
-        return { file: str(file.file, `${at}.file`), tests: count(file.tests, `${at}.tests`), change };
+        return {
+          file: str(file.file, `${at}.file`),
+          tests: count(file.tests, `${at}.tests`),
+          change,
+          config: strOrNull(file.config, `${at}.config`),
+        };
       }),
       turnedOff: array(sections.turnedOff, 'turnedOff', (entry, at) => {
         const group = object(entry, at);

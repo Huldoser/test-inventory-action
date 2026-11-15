@@ -8,7 +8,7 @@ const REPORT: Report = {
   number: 42,
   head: HEAD,
   sections: {
-    wontRun: [{ file: 'tests/strategies/mean-reversion.spec.ts', tests: 3, change: 'new' }],
+    wontRun: [{ file: 'tests/strategies/mean-reversion.spec.ts', tests: 3, change: 'new', config: 'vitest.config.ts' }],
     turnedOff: [
       { state: 'skip', condition: "browserName === 'webkit'", reason: null, was: null, tests: [{ ...test, count: 1 }] },
     ],
@@ -44,6 +44,16 @@ describe("the scan's report, as the comment step reads it", () => {
     ['number', { ...REPORT, number: -1 }],
     ['sections', { ...REPORT, sections: 'none' }],
     ['wontRun', { ...REPORT, sections: { ...REPORT.sections, wontRun: {} } }],
+    [
+      'wontRun[0].config',
+      {
+        ...REPORT,
+        sections: {
+          ...REPORT.sections,
+          wontRun: [{ file: 'a.spec.ts', tests: 1, change: 'new', config: ['vitest.config.ts'] }],
+        },
+      },
+    ],
     [
       'wontRun[0].change',
       { ...REPORT, sections: { ...REPORT.sections, wontRun: [{ file: 'a.spec.ts', tests: 1, change: '**now**' }] } },

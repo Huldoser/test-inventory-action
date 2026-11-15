@@ -207,6 +207,7 @@ describe("a pull request's test changes, by section", () => {
         "wontRun": [
           {
             "change": "new",
+            "config": "vitest.config.ts",
             "file": "tests/strategies/mean-reversion.spec.ts",
             "tests": 1,
           },
@@ -241,7 +242,9 @@ describe("a pull request's test changes, by section", () => {
       },
       ['vitest.config.ts'],
     );
-    expect(sections.wontRun).toEqual([{ file: 'tests/pnl/fees.test.ts', tests: 1, change: 'stopped' }]);
+    expect(sections.wontRun).toEqual([
+      { file: 'tests/pnl/fees.test.ts', tests: 1, change: 'stopped', config: 'vitest.config.ts' },
+    ]);
     expect(sections.deletedFiles).toEqual([{ file: 'test/feed.spec.js', tests: 1 }]);
     expect(sections.added).toEqual([{ name: 'places a limit order', file: 'e2e/place-order.spec.ts', line: 2 }]);
   });

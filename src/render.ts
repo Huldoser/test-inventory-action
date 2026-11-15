@@ -1,4 +1,4 @@
-import type { Framework } from 'test-inventory';
+import type { Framework, TestState } from 'test-inventory';
 import { isQuiet, turnedOffCount, type Sections, type TestRef } from './sections.ts';
 
 /** The marker that finds the action's comment again on the next push. */
@@ -16,6 +16,7 @@ export interface ScanFacts {
 
 const LIST_LIMIT = 50;
 const DOCS = 'https://huldoser.github.io/test-inventory';
+const README = 'https://github.com/Huldoser/test-inventory-action#readme';
 // The logo files of the release the action pins, so a comment keeps its logo whatever later changes on main.
 const ASSETS = 'https://raw.githubusercontent.com/Huldoser/test-inventory/v0.10.4/docs/public';
 const MARK = `<picture><source media="(prefers-color-scheme: dark)" srcset="${ASSETS}/mark-small-dark.svg"><img src="${ASSETS}/mark-small-light.svg" alt="" width="20" height="20" align="top"></picture>`;
@@ -70,6 +71,18 @@ const urlPath = (file: string) =>
     .split('/')
     .map((part) => encodeURIComponent(part).replace(/[()]/g, (bracket) => (bracket === '(' ? '%28' : '%29')))
     .join('/');
+
+/** How the comment says what turns a group of tests off. */
+const STATE_WORDS: Record<TestState, string> = {
+  active: 'Active',
+  skip: 'Skipped',
+  fixme: 'Marked fixme',
+  todo: 'Marked todo',
+  expectedToFail: 'Expected to fail',
+  notLoaded: 'Not loaded',
+};
+/** How many rows a visible section shows before the rest fold away. */
+const SHOWN = 10;
 
 /**
  * A table, cut at the limit with a row that counts what it leaves out. A `|` in a cell would end it, in a code span too,
@@ -132,100 +145,115 @@ export function renderReport(sections: Sections, facts: ScanFacts, limit: Limit,
     lines.push(
       '> [!WARNING]',
       `> **${agree(total, 'test needs', 'tests need')} a look before this merges:** ${series(parts)}.`,
+      '>',
+      '> This is a heads-up, not a failing check; it updates on every push.',
       '',
     );
   }
-  /** A visible section: its heading with the count, a line on what it means, and the docs page that explains it. */
+  /**
+   * A visible section: its heading with the count, a line on what it means and what to do about it, and the docs page
+   * that explains it.
+   */
   const section = (title: string, count: string, about: string, docs: string) =>
     lines.push(`#### ${title} · ${count}`, '', `<sub>${about} [Docs](${DOCS}/${docs})</sub>`, '');
+  /** A visible section's table: the first rows, and the rest folded under them. */
+  const rowsOf = (header: string[], rows: string[][], align?: string[]) => {
+    lines.push(...table(header, rows.slice(0, SHOWN), align), '');
+    if (rows.length > SHOWN)
+      lines.push(
+        `<details><summary>Show ${rows.length - SHOWN} more</summary>`,
+        '',
+        ...table(header, rows.slice(SHOWN), align),
+        '',
+        '</details>',
+        '',
+      );
+  };
   if (sections.wontRun.length > 0) {
     section(
       "Won't run",
       plural(wontRun, 'test'),
-      'No runner config collects these files, so CI never runs their tests.',
+      'No runner config collects these files, so CI never runs their tests. Rename each to match its config, or add it to the config.',
       'reference/diagnostics',
     );
-    lines.push(
-      ...table(
-        ['File', 'Tests', 'Why'],
-        sections.wontRun.map((file) => [
-          link(facts.head, file.file),
-          String(file.tests),
-          file.change === 'new' ? 'New in this pull request' : 'Collected before this pull request',
-        ]),
-        ['---', '--:', '---'],
-      ),
-      '',
+    rowsOf(
+      ['File', 'Tests', 'Why'],
+      sections.wontRun.map((file) => [
+        link(facts.head, file.file),
+        String(file.tests),
+        `${file.change === 'new' ? 'New file' : 'Ran before'}: ${file.config === null ? 'no config collects it' : `${link(facts.head, file.config)} doesn't collect it`}`,
+      ]),
+      ['---', '--:', '---'],
     );
   }
   if (sections.turnedOff.length > 0) {
     section(
       'Turned off',
       plural(turnedOff, 'test'),
-      'Tests that ran before and now skip, grouped by what turns them off.',
+      "Tests that ran before and now don't, grouped by what turns them off. Check each should stay off; a reason in the skip call shows here.",
       'reference/output#how-the-state-is-chosen',
     );
     // Each group's tests share their state and why, so it heads their table rather than repeat in every row.
     for (const group of sections.turnedOff) {
-      const why =
-        [
-          group.condition !== null && `when ${code(group.condition)}`,
-          group.was !== null && `always now; before, only when ${code(group.was)}`,
-          group.reason !== null && text(group.reason),
-        ]
-          .filter(Boolean)
-          .join('; ') || 'no reason given';
-      const rows = group.tests.map((item) => [
-        item.count > 1 ? `${text(item.name)} (${plural(item.count, 'test')})` : text(item.name),
-        atHead(item),
-      ]);
-      lines.push(`**${code(group.state)}** ${why}`, '', ...table(['Test', 'Location'], rows), '');
+      const word = STATE_WORDS[group.state];
+      const how =
+        group.was !== null
+          ? `**${word} every time**; before, only when ${code(group.was)}`
+          : group.condition !== null
+            ? `**${word}** when ${code(group.condition)}`
+            : `**${word}**`;
+      lines.push(
+        group.reason !== null
+          ? `${how}: ${text(group.reason)}`
+          : group.condition === null && group.was === null
+            ? `${how}, with no reason given`
+            : how,
+        '',
+      );
+      rowsOf(
+        ['Test', 'Location'],
+        group.tests.map((item) => [
+          item.count > 1 ? `${text(item.name)} (${plural(item.count, 'test')})` : text(item.name),
+          atHead(item),
+        ]),
+      );
     }
   }
   if (sections.removed.length > 0) {
     section(
       'Removed',
       plural(sections.removed.length, 'test'),
-      'Tests taken out of files that gained no others.',
+      'Tests taken out of files that gained no others. Check that what they tested is gone too, or tested elsewhere.',
       'guide/diff#matches-and-changes',
     );
-    lines.push(
-      ...table(
-        ['Test', 'Was at'],
-        sections.removed.map((item) => [text(item.name), atBase(item)]),
-      ),
-      '',
+    rowsOf(
+      ['Test', 'Was at'],
+      sections.removed.map((item) => [text(item.name), atBase(item)]),
     );
   }
   if (sections.deletedFiles.length > 0) {
     section(
       'Test files deleted',
       plural(sections.deletedFiles.length, 'file'),
-      'Files this pull request deletes, with the tests they held.',
+      'Files this pull request deletes, with the tests they held. Check that what they tested is gone too, or tested elsewhere.',
       'guide/diff#matches-and-changes',
     );
-    lines.push(
-      ...table(
-        ['File', 'Tests'],
-        sections.deletedFiles.map((file) => [link(facts.base, file.file), String(file.tests)]),
-        ['---', '--:'],
-      ),
-      '',
+    rowsOf(
+      ['File', 'Tests'],
+      sections.deletedFiles.map((file) => [link(facts.base, file.file), String(file.tests)]),
+      ['---', '--:'],
     );
   }
   if (sections.assertsNothing.length > 0) {
     section(
       'No assertions left',
       plural(sections.assertsNothing.length, 'test'),
-      'Tests that had `expect` calls and now have none.',
+      'Tests that had `expect` calls and now have none, so they pass unless the code throws. Add an `expect` back, or remove the test.',
       'reference/output#what-the-body-does',
     );
-    lines.push(
-      ...table(
-        ['Test', 'Location', 'Had'],
-        sections.assertsNothing.map((item) => [text(item.name), atHead(item), plural(item.from, '`expect` call')]),
-      ),
-      '',
+    rowsOf(
+      ['Test', 'Location', 'Had'],
+      sections.assertsNothing.map((item) => [text(item.name), atHead(item), plural(item.from, '`expect` call')]),
     );
   }
   const details = (title: string, count: string, header: string[], rows: string[][], align?: string[]) => {
@@ -286,7 +314,7 @@ export function renderReport(sections: Sections, facts: ScanFacts, limit: Limit,
     return text(runner.version ? `${name} ${runner.version}` : name);
   });
   const commit = (sha: string) => `[\`${sha.slice(0, 7)}\`](${repository}/commit/${sha})`;
-  const footer = `<sub>Read from source by [test-inventory](${DOCS}/) ${text(facts.core)}, with no tests run · ${runners.join(', ')} · ${plural(facts.tests, 'test')} in ${facts.seconds} s · base ${commit(facts.base)} → head ${commit(facts.head)}</sub>`;
+  const footer = `<sub>Read from source by [test-inventory](${DOCS}/) ${text(facts.core)}, with no tests run · ${runners.join(', ')} · ${plural(facts.tests, 'test')} in ${facts.seconds} s · base ${commit(facts.base)} → head ${commit(facts.head)} · [About this comment](${README})</sub>`;
   let body = lines.join('\n');
   if (body.length > limit.maxLength) {
     body = `${body.slice(0, body.lastIndexOf('\n', limit.maxLength))}\n\n${limit.cutNote}\n`;

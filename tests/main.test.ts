@@ -251,7 +251,7 @@ describe('comment mode, in a workflow_run workflow', () => {
     expect(github.comments).toHaveLength(1);
     expect(github.comments[0].body.startsWith(MARKER)).toBe(true);
     expect(github.comments[0].body).toContain(
-      `| [\`tests/strategies/mean-reversion.spec.ts\`](https://github.com/trading-desk/strategy-engine/blob/${pr.head}/tests/strategies/mean-reversion.spec.ts) | 1 | New in this pull request |`,
+      `| [\`tests/strategies/mean-reversion.spec.ts\`](https://github.com/trading-desk/strategy-engine/blob/${pr.head}/tests/strategies/mean-reversion.spec.ts) | 1 | New file: [\`vitest.config.ts\`](https://github.com/trading-desk/strategy-engine/blob/${pr.head}/vitest.config.ts) doesn't collect it |`,
     );
   });
 

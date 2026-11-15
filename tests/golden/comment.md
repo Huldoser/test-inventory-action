@@ -3,33 +3,35 @@
 
 > [!WARNING]
 > **14 tests need a look before this merges:** 7 won't run, 4 are turned off, 1 was removed, 1 was in a deleted file and 1 has no assertions left.
+>
+> This is a heads-up, not a failing check; it updates on every push.
 
 #### Won't run · 7 tests
 
-<sub>No runner config collects these files, so CI never runs their tests. [Docs](https://huldoser.github.io/test-inventory/reference/diagnostics)</sub>
+<sub>No runner config collects these files, so CI never runs their tests. Rename each to match its config, or add it to the config. [Docs](https://huldoser.github.io/test-inventory/reference/diagnostics)</sub>
 
 | File | Tests | Why |
 | --- | --: | --- |
-| [`tests/strategies/mean-reversion.spec.ts`](https://github.com/trading-desk/strategy-engine/blob/36c23aa0f1e2d3c4b5a69788796a5b4c3d2e1f00/tests/strategies/mean-reversion.spec.ts) | 3 | New in this pull request |
-| [`tests/pnl/fees.test.ts`](https://github.com/trading-desk/strategy-engine/blob/36c23aa0f1e2d3c4b5a69788796a5b4c3d2e1f00/tests/pnl/fees.test.ts) | 4 | Collected before this pull request |
+| [`tests/strategies/mean-reversion.spec.ts`](https://github.com/trading-desk/strategy-engine/blob/36c23aa0f1e2d3c4b5a69788796a5b4c3d2e1f00/tests/strategies/mean-reversion.spec.ts) | 3 | New file: [`vitest.config.ts`](https://github.com/trading-desk/strategy-engine/blob/36c23aa0f1e2d3c4b5a69788796a5b4c3d2e1f00/vitest.config.ts) doesn't collect it |
+| [`tests/pnl/fees.test.ts`](https://github.com/trading-desk/strategy-engine/blob/36c23aa0f1e2d3c4b5a69788796a5b4c3d2e1f00/tests/pnl/fees.test.ts) | 4 | Ran before: [`vitest.config.ts`](https://github.com/trading-desk/strategy-engine/blob/36c23aa0f1e2d3c4b5a69788796a5b4c3d2e1f00/vitest.config.ts) doesn't collect it |
 
 #### Turned off · 4 tests
 
-<sub>Tests that ran before and now skip, grouped by what turns them off. [Docs](https://huldoser.github.io/test-inventory/reference/output#how-the-state-is-chosen)</sub>
+<sub>Tests that ran before and now don't, grouped by what turns them off. Check each should stay off; a reason in the skip call shows here. [Docs](https://huldoser.github.io/test-inventory/reference/output#how-the-state-is-chosen)</sub>
 
-**`skip`** when `process.env.MARKET === 'closed'`; Alerts only trigger while the market is open
+**Skipped** when `process.env.MARKET === 'closed'`: Alerts only trigger while the market is open
 
 | Test | Location |
 | --- | --- |
 | price alerts › notifies when the price crosses above the alert | [`tests/alerts.spec.ts:11`](https://github.com/trading-desk/strategy-engine/blob/36c23aa0f1e2d3c4b5a69788796a5b4c3d2e1f00/tests/alerts.spec.ts#L11) |
 
-**`fixme`** no reason given
+**Marked fixme**, with no reason given
 
 | Test | Location |
 | --- | --- |
 | login › asks for a one-time code | [`tests/login.spec.ts:25`](https://github.com/trading-desk/strategy-engine/blob/36c23aa0f1e2d3c4b5a69788796a5b4c3d2e1f00/tests/login.spec.ts#L25) |
 
-**`skip`** always now; before, only when `!(process.env.BROKER_API_KEY)`
+**Skipped every time**; before, only when `!(process.env.BROKER_API_KEY)`
 
 | Test | Location |
 | --- | --- |
@@ -37,7 +39,7 @@
 
 #### Removed · 1 test
 
-<sub>Tests taken out of files that gained no others. [Docs](https://huldoser.github.io/test-inventory/guide/diff#matches-and-changes)</sub>
+<sub>Tests taken out of files that gained no others. Check that what they tested is gone too, or tested elsewhere. [Docs](https://huldoser.github.io/test-inventory/guide/diff#matches-and-changes)</sub>
 
 | Test | Was at |
 | --- | --- |
@@ -45,7 +47,7 @@
 
 #### Test files deleted · 1 file
 
-<sub>Files this pull request deletes, with the tests they held. [Docs](https://huldoser.github.io/test-inventory/guide/diff#matches-and-changes)</sub>
+<sub>Files this pull request deletes, with the tests they held. Check that what they tested is gone too, or tested elsewhere. [Docs](https://huldoser.github.io/test-inventory/guide/diff#matches-and-changes)</sub>
 
 | File | Tests |
 | --- | --: |
@@ -53,7 +55,7 @@
 
 #### No assertions left · 1 test
 
-<sub>Tests that had `expect` calls and now have none. [Docs](https://huldoser.github.io/test-inventory/reference/output#what-the-body-does)</sub>
+<sub>Tests that had `expect` calls and now have none, so they pass unless the code throws. Add an `expect` back, or remove the test. [Docs](https://huldoser.github.io/test-inventory/reference/output#what-the-body-does)</sub>
 
 | Test | Location | Had |
 | --- | --- | --- |
@@ -100,4 +102,4 @@
 
 </details>
 
-<sub>Read from source by [test-inventory](https://huldoser.github.io/test-inventory/) 0.10.4, with no tests run · Vitest 5.0.5, Playwright · 412 tests in 3.2 s · base [`794d084`](https://github.com/trading-desk/strategy-engine/commit/794d084a1b2c3d4e5f60718293a4b5c6d7e8f901) → head [`36c23aa`](https://github.com/trading-desk/strategy-engine/commit/36c23aa0f1e2d3c4b5a69788796a5b4c3d2e1f00)</sub>
+<sub>Read from source by [test-inventory](https://huldoser.github.io/test-inventory/) 0.10.4, with no tests run · Vitest 5.0.5, Playwright · 412 tests in 3.2 s · base [`794d084`](https://github.com/trading-desk/strategy-engine/commit/794d084a1b2c3d4e5f60718293a4b5c6d7e8f901) → head [`36c23aa`](https://github.com/trading-desk/strategy-engine/commit/36c23aa0f1e2d3c4b5a69788796a5b4c3d2e1f00) · [About this comment](https://github.com/Huldoser/test-inventory-action#readme)</sub>
