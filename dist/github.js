@@ -1,5 +1,5 @@
 import { MARKER } from "./render.js";
-/** The REST API calls the comment step makes, with the token it is given. */
+/** The REST API calls the action makes, with the token it is given. */
 export class GitHub {
     token;
     apiUrl;
@@ -24,6 +24,12 @@ export class GitHub {
             throw new Error(`GitHub answered ${method} ${route} with ${response.status}: ${(await response.text()).slice(0, 300)}`);
         }
         return response.json();
+    }
+    /** The commit where `head` last met the branch `base`. */
+    async mergeBase(repository, base, head) {
+        const branch = base.split('/').map(encodeURIComponent).join('/');
+        const comparison = (await this.request('GET', `/repos/${repository}/compare/${branch}...${head}?per_page=1`));
+        return comparison.merge_base_commit.sha;
     }
     /** The commit a pull request's head is at now. */
     async headOf(repository, number) {

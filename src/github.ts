@@ -1,6 +1,6 @@
 import { MARKER } from './render.ts';
 
-/** The REST API calls the comment step makes, with the token it is given. */
+/** The REST API calls the action makes, with the token it is given. */
 export class GitHub {
   private readonly token: string;
   private readonly apiUrl: string;
@@ -29,6 +29,15 @@ export class GitHub {
       );
     }
     return response.json();
+  }
+
+  /** The commit where `head` last met the branch `base`. */
+  async mergeBase(repository: string, base: string, head: string): Promise<string> {
+    const branch = base.split('/').map(encodeURIComponent).join('/');
+    const comparison = (await this.request('GET', `/repos/${repository}/compare/${branch}...${head}?per_page=1`)) as {
+      merge_base_commit: { sha: string };
+    };
+    return comparison.merge_base_commit.sha;
   }
 
   /** The commit a pull request's head is at now. */

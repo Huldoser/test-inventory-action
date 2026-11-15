@@ -23,6 +23,21 @@ function setOutputs(env, outputs) {
         .join(''));
 }
 /**
+ * The commit a pull request's changes are measured from. A `pull_request` run checks out the pull request merged into
+ * its base branch as it is now, so that is the merge's first parent: the event's base.sha doesn't move as the base
+ * branch gains commits, and measuring from it would credit the pull request with them. A checkout of the pull
+ * request's own head is measured from where it last met the base branch, which GitHub works out without the history
+ * a shallow checkout lacks.
+ */
+async function baseOf(context, pull, workspace) {
+    const { env, git } = context;
+    const parents = [...git(['cat-file', '-p', 'HEAD'], workspace).matchAll(/^parent (\w+)$/gm)].map((match) => match[1]);
+    if (parents.length === 2 && parents[1] === pull.head.sha)
+        return parents[0];
+    const github = context.github(required(env, 'GITHUB_TOKEN'), env.GITHUB_API_URL ?? 'https://api.github.com');
+    return github.mergeBase(required(env, 'GITHUB_REPOSITORY'), pull.base.ref, pull.head.sha);
+}
+/**
  * Scan mode, in a `pull_request` workflow: scans the pull request's base and head, writes the report to the job summary
  * and to `report.json` in the report folder for the comment step, and sets the outputs. It never fails because of what
  * the report says.
@@ -39,7 +54,7 @@ export async function scanPullRequest(context) {
     }
     const workspace = required(env, 'GITHUB_WORKSPACE');
     const reportDir = required(env, 'REPORT_DIR');
-    const base = pull.base.sha;
+    const base = await baseOf(context, pull, workspace);
     const started = performance.now();
     try {
         git(['cat-file', '-e', `${base}^{commit}`], workspace);

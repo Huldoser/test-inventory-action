@@ -7,7 +7,7 @@ import { GitHub } from '../src/github.ts';
 import { commentOnPullRequest, main, scanPullRequest, type Context } from '../src/main.ts';
 import { MARKER } from '../src/render.ts';
 import { scanRevision } from '../src/scan.ts';
-import { folder, pullRequest, VITEST_PACKAGE } from './project.ts';
+import { folder, git as commit, pullRequest, VITEST_PACKAGE } from './project.ts';
 
 const CONFIG = "export default { test: { include: ['tests/**/*.test.ts'] } };\n";
 const LIMIT_ORDER =
@@ -79,13 +79,59 @@ describe('scan mode, in a pull_request workflow', () => {
     expect(git(['worktree', 'list'], pr.root).trim().split('\n')).toHaveLength(1);
   });
 
+  /** The strategy pull request, after main deleted the limit order tests it never touched. */
+  function afterMainMoved() {
+    return pullRequest(
+      {
+        'package.json': VITEST_PACKAGE,
+        'vitest.config.ts': CONFIG,
+        'tests/orders/limit-order.test.ts': LIMIT_ORDER,
+        'tests/orders/stop-order.test.ts': STOP_ORDER('it'),
+      },
+      { 'tests/orders/stop-order.test.ts': STOP_ORDER('it.skip') },
+      { 'tests/orders/limit-order.test.ts': null },
+    );
+  }
+
+  it("measures the pull request from main as it is now, not from its event's older base.sha", async () => {
+    const pr = afterMainMoved();
+    const { env, files, read } = runner({
+      pull_request: { number: 42, base: { sha: pr.base, ref: 'main' }, head: { sha: pr.head } },
+    });
+    await scanPullRequest(context({ ...env, GITHUB_WORKSPACE: pr.root }));
+    expect(read(files.output)).toContain('turned-off=1\nremoved=0\n');
+    expect(read(files.summary)).toContain('| 0 | **1** | 0 | 0 | 0 |');
+    expect(read(files.summary)).toContain(`base ${pr.main.slice(0, 7)} → head ${pr.head.slice(0, 7)}`);
+  });
+
+  it('asks GitHub where a checked-out head that merged main itself last met main', async () => {
+    const pr = afterMainMoved();
+    commit(pr.root, 'checkout', '-q', 'pr');
+    commit(pr.root, 'merge', '-q', '--no-ff', '-m', 'merge main into pr', 'main');
+    const head = commit(pr.root, 'rev-parse', 'HEAD');
+    const { env, files, read } = runner({
+      pull_request: { number: 42, base: { sha: pr.base, ref: 'main' }, head: { sha: head } },
+    });
+    const routes: string[] = [];
+    const github = (token: string, apiUrl: string) =>
+      new GitHub(token, apiUrl, (url) => {
+        routes.push(url as string);
+        return Promise.resolve(Response.json({ merge_base_commit: { sha: pr.main } }));
+      });
+    await scanPullRequest(context({ ...env, GITHUB_WORKSPACE: pr.root, GITHUB_TOKEN: 'ghs_EXAMPLE' }, { github }));
+    expect(routes).toEqual([
+      `https://api.github.com/repos/trading-desk/strategy-engine/compare/main...${head}?per_page=1`,
+    ]);
+    expect(read(files.summary)).toContain('| 0 | **1** | 0 | 0 | 0 |');
+  });
+
   it('fetches the base commit when the checkout lacks it', async () => {
     const pr = strategyPullRequest();
     const { env } = runner({ pull_request: { number: 42, base: { sha: pr.base }, head: { sha: pr.head } } });
     const calls: string[][] = [];
     const lacking = (args: string[], cwd: string) => {
       calls.push(args);
-      if (args[0] === 'cat-file') throw new Error('fatal: Not a valid object name');
+      if (args[0] === 'cat-file' && args[1] === '-e') throw new Error('fatal: Not a valid object name');
       return args[0] === 'fetch' ? '' : git(args, cwd);
     };
     await scanPullRequest(context({ ...env, GITHUB_WORKSPACE: pr.root }, { git: lacking }));

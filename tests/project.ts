@@ -33,23 +33,31 @@ export function git(root: string, ...args: string[]): string {
 }
 
 /**
- * A git repository with a base commit and a head commit on top of it, as a pull request's checkout: the head's files
- * change the base's, and a null removes one.
+ * A pull request's checkout as a `pull_request` run has it: the head merged into the base branch. The head's files
+ * change the base's, and a null removes one. With `mainAfter`, main moves on after the pull request branched, and
+ * `base` is where it branched, as the event's base.sha still says.
  */
 export function pullRequest(
   base: Record<string, string>,
   head: Record<string, string | null>,
-): { root: string; base: string; head: string } {
+  mainAfter?: Record<string, string | null>,
+): { root: string; base: string; head: string; main: string } {
   const root = folder();
+  const commit = (files: Record<string, string | null>, message: string) => {
+    write(root, files);
+    git(root, 'add', '-A');
+    git(root, 'commit', '-q', '--allow-empty', '-m', message);
+    return git(root, 'rev-parse', 'HEAD');
+  };
   git(root, 'init', '-q', '-b', 'main');
-  write(root, base);
-  git(root, 'add', '-A');
-  git(root, 'commit', '-q', '-m', 'base');
-  const baseSha = git(root, 'rev-parse', 'HEAD');
-  write(root, head);
-  git(root, 'add', '-A');
-  git(root, 'commit', '-q', '--allow-empty', '-m', 'head');
-  return { root, base: baseSha, head: git(root, 'rev-parse', 'HEAD') };
+  const baseSha = commit(base, 'base');
+  git(root, 'checkout', '-q', '-b', 'pr');
+  const headSha = commit(head, 'head');
+  git(root, 'checkout', '-q', 'main');
+  const main = mainAfter ? commit(mainAfter, 'main moves on') : baseSha;
+  git(root, 'checkout', '-q', '--detach', 'main');
+  git(root, 'merge', '-q', '--no-ff', '-m', 'merge pr into main', 'pr');
+  return { root, base: baseSha, head: headSha, main };
 }
 
 export const VITEST_PACKAGE = JSON.stringify({ devDependencies: { vitest: '5.0.5' } });
