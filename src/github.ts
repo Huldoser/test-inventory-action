@@ -61,8 +61,9 @@ export class GitHub {
       const comments = (await this.request(
         'GET',
         `/repos/${repository}/issues/${number}/comments?per_page=100&page=${page}`,
-      )) as { id: number; body?: string }[];
-      const found = comments.find((comment) => comment.body?.startsWith(MARKER));
+      )) as { id: number; body?: string; user?: { type: string } | null }[];
+      // Anyone can write the marker; only a bot's comment, such as the workflow token's, is the action's own.
+      const found = comments.find((comment) => comment.user?.type === 'Bot' && comment.body?.startsWith(MARKER));
       if (found) existing = { id: found.id, body: found.body as string };
       if (comments.length < 100) break;
     }

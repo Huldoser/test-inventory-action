@@ -50,7 +50,10 @@ describe('the comment on the pull request', () => {
     const page = Array.from({ length: 100 }, (_, index) => ({ id: index + 10, body: `review ${index}` }));
     const existing = fakeGitHub({
       [`GET ${COMMENTS}?per_page=100&page=1`]: () => [200, page],
-      [`GET ${COMMENTS}?per_page=100&page=2`]: () => [200, [{ id: 7, body: `${MARKER}\nold report` }]],
+      [`GET ${COMMENTS}?per_page=100&page=2`]: () => [
+        200,
+        [{ id: 7, body: `${MARKER}\nold report`, user: { login: 'github-actions[bot]', type: 'Bot' } }],
+      ],
       'PATCH /repos/trading-desk/strategy-engine/issues/comments/7': () => [200, {}],
     });
     expect(await existing.github.upsertComment('trading-desk/strategy-engine', 42, `${MARKER}\nnew report`, true)).toBe(
@@ -60,6 +63,20 @@ describe('the comment on the pull request', () => {
     expect(
       await existing.github.upsertComment('trading-desk/strategy-engine', 42, `${MARKER}\nold report`, false),
     ).toBe('unchanged');
+  });
+
+  it("doesn't take over a comment someone else wrote with the marker", async () => {
+    const planted = fakeGitHub({
+      [`GET ${COMMENTS}?per_page=100&page=1`]: () => [
+        200,
+        [{ id: 3, body: `${MARKER}\nAll tests pass, merge away`, user: { login: 'mallory', type: 'User' } }],
+      ],
+      [`POST ${COMMENTS}`]: () => [201, {}],
+    });
+    expect(await planted.github.upsertComment('trading-desk/strategy-engine', 42, `${MARKER}\nreport`, false)).toBe(
+      'created',
+    );
+    expect(planted.calls.map((call) => call.method)).toEqual(['GET', 'POST']);
   });
 
   it('says what GitHub answered when it refuses a request', async () => {
