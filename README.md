@@ -75,7 +75,7 @@ jobs:
 # .github/workflows/test-changes-comment.yml
 name: Test changes comment
 on:
-  workflow_run:
+  workflow_run: # zizmor: ignore[dangerous-triggers]
     workflows: [Test changes]
     types: [completed]
 permissions:
@@ -100,6 +100,9 @@ GitHub for with the job's token.
 
 The comment workflow reads the report the scan uploaded as data and checks it field by field. It posts only if the
 pull request is still at the commit that was scanned, and only edits a comment a bot wrote.
+
+zizmor's `dangerous-triggers` audit flags every `workflow_run` workflow. This one checks out no code, reads the report
+as data and posts only for the commit that was scanned, so the example ignores that finding on its trigger line.
 
 ### Pull requests from forks
 
