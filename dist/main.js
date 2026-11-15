@@ -7,7 +7,7 @@ import { GitHub } from "./github.js";
 import { COMMENT_LIMIT, renderReport, SUMMARY_LIMIT } from "./render.js";
 import { parseReport } from "./report.js";
 import { scanRevision } from "./scan.js";
-import { isQuiet, sectionsOf } from "./sections.js";
+import { isQuiet, sectionsOf, turnedOffCount } from "./sections.js";
 const core = createRequire(import.meta.url)('test-inventory/package.json').version;
 function required(env, name) {
     const value = env[name];
@@ -104,7 +104,7 @@ export async function scanPullRequest(context) {
         appendFileSync(summary, renderReport(sections, facts, SUMMARY_LIMIT));
         setOutputs(env, {
             'wont-run': sections.wontRun.reduce((sum, file) => sum + file.tests, 0),
-            'turned-off': sections.turnedOff.reduce((sum, group) => sum + group.tests.length, 0),
+            'turned-off': turnedOffCount(sections),
             removed: sections.removed.length,
             'asserts-nothing': sections.assertsNothing.length,
             'report-dir': reportDir,

@@ -6,6 +6,37 @@ export const VISIBLE = ['wontRun', 'turnedOff', 'removed', 'deletedFiles', 'asse
 const ref = (test) => ({ name: test.fullName, file: test.relativeFilePath, line: test.lineStart });
 /** Orders tests as a reader meets them: by file, then line. */
 const byLocation = (a, b) => a.file.localeCompare(b.file, 'en') || a.line - b.line;
+/** How many tests a pull request turns off. */
+export function turnedOffCount(sections) {
+    return sections.turnedOff.reduce((sum, group) => sum + group.tests.reduce((tests, row) => tests + row.count, 0), 0);
+}
+/** The turned-off tests as rows: one for each describe that turns off two or more of them, one for each other test. */
+function rowsOf(tests) {
+    const rows = [];
+    const bySuite = new Map();
+    for (const test of tests.sort((a, b) => byLocation(ref(a), ref(b)))) {
+        if (test.stateSource !== 'suite')
+            rows.push({ ...ref(test), count: 1 });
+        else {
+            const key = `${test.relativeFilePath}\0${test.stateLine}`;
+            bySuite.set(key, [...(bySuite.get(key) ?? []), test]);
+        }
+    }
+    for (const [first, ...others] of bySuite.values()) {
+        if (others.length === 0) {
+            rows.push({ ...ref(first), count: 1 });
+            continue;
+        }
+        const shared = others.reduce((prefix, test) => {
+            const differs = prefix.findIndex((suite, index) => test.suitePath[index] !== suite);
+            return differs === -1 ? prefix : prefix.slice(0, differs);
+        }, first.suitePath);
+        // A test whose state comes from its suite has the line of the describe that sets it.
+        const line = first.stateLine;
+        rows.push({ name: shared.join(' > '), file: first.relativeFilePath, line, count: others.length + 1 });
+    }
+    return rows.sort(byLocation);
+}
 /**
  * Compares the scans of a pull request's base and head, runner by runner, and sorts what changed into sections. Tests
  * in files that won't run are reported there only, and `changedFiles` says which files a dependency change came from.
@@ -73,7 +104,7 @@ export function sectionsOf(base, head, changedFiles) {
                     was: before,
                     tests: [],
                 };
-                group.tests.push(ref(now));
+                group.tests.push(now);
                 turnedOff.set(key, group);
             }
             if (was.expectCount > 0 && now.expectCount === 0)
@@ -91,7 +122,7 @@ export function sectionsOf(base, head, changedFiles) {
             }
         }
     }
-    sections.turnedOff = [...turnedOff.values()].map((group) => ({ ...group, tests: group.tests.sort(byLocation) }));
+    sections.turnedOff = [...turnedOff.values()].map((group) => ({ ...group, tests: rowsOf(group.tests) }));
     sections.helpersChanged = [...helpers].map(([file, tests]) => ({ file, tests }));
     // A file that lost tests and gained others was rewritten, or its tests renamed and edited, or replaced: the diff
     // can't tell these apart, so the comment groups them rather than call the old tests removed.

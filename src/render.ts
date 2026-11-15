@@ -1,4 +1,4 @@
-import { isQuiet, type Sections, type TestRef } from './sections.ts';
+import { isQuiet, turnedOffCount, type Sections, type TestRef } from './sections.ts';
 
 /** The marker that finds the action's comment again on the next push. */
 export const MARKER = '<!-- test-inventory-action -->';
@@ -82,7 +82,7 @@ export function renderReport(sections: Sections, facts: ScanFacts, limit: Limit)
   } else {
     const counts = [
       sections.wontRun.reduce((sum, file) => sum + file.tests, 0),
-      sections.turnedOff.reduce((sum, group) => sum + group.tests.length, 0),
+      turnedOffCount(sections),
       sections.removed.length,
       sections.deletedFiles.length,
       sections.assertsNothing.length,
@@ -120,7 +120,12 @@ export function renderReport(sections: Sections, facts: ScanFacts, limit: Limit)
         ]
           .filter(Boolean)
           .join('; ') || 'no reason given';
-      return group.tests.map((item) => [text(item.name), location(item), code(group.state), why]);
+      return group.tests.map((item) => [
+        item.count > 1 ? `${text(item.name)} (${plural(item.count, 'test')})` : text(item.name),
+        location(item),
+        code(group.state),
+        why,
+      ]);
     });
     lines.push(...table(['Test', 'Location', 'State', 'When or why'], rows), '');
   }

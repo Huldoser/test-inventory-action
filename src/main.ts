@@ -7,7 +7,7 @@ import { GitHub } from './github.ts';
 import { COMMENT_LIMIT, renderReport, SUMMARY_LIMIT, type ScanFacts } from './render.ts';
 import { parseReport, type Report } from './report.ts';
 import { scanRevision } from './scan.ts';
-import { isQuiet, sectionsOf } from './sections.ts';
+import { isQuiet, sectionsOf, turnedOffCount } from './sections.ts';
 
 /** What a step of the action reads from its environment, as GitHub Actions and `action.yml` set it. */
 export interface Context {
@@ -127,7 +127,7 @@ export async function scanPullRequest(context: Context): Promise<void> {
     appendFileSync(summary, renderReport(sections, facts, SUMMARY_LIMIT));
     setOutputs(env, {
       'wont-run': sections.wontRun.reduce((sum, file) => sum + file.tests, 0),
-      'turned-off': sections.turnedOff.reduce((sum, group) => sum + group.tests.length, 0),
+      'turned-off': turnedOffCount(sections),
       removed: sections.removed.length,
       'asserts-nothing': sections.assertsNothing.length,
       'report-dir': reportDir,

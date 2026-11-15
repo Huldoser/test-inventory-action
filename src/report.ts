@@ -66,7 +66,10 @@ export function parseReport(value: unknown): Report {
           condition: strOrNull(group.condition, `${at}.condition`),
           reason: strOrNull(group.reason, `${at}.reason`),
           was: strOrNull(group.was, `${at}.was`),
-          tests: array(group.tests, `${at}.tests`, testRef),
+          tests: array(group.tests, `${at}.tests`, (test, place) => ({
+            ...testRef(test, place),
+            count: count(object(test, place).count, `${place}.count`),
+          })),
         };
       }),
       removed: array(sections.removed, 'removed', testRef),

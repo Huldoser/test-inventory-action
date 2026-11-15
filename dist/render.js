@@ -1,4 +1,4 @@
-import { isQuiet } from "./sections.js";
+import { isQuiet, turnedOffCount } from "./sections.js";
 /** The marker that finds the action's comment again on the next push. */
 export const MARKER = '<!-- test-inventory-action -->';
 const LIST_LIMIT = 50;
@@ -58,7 +58,7 @@ export function renderReport(sections, facts, limit) {
     else {
         const counts = [
             sections.wontRun.reduce((sum, file) => sum + file.tests, 0),
-            sections.turnedOff.reduce((sum, group) => sum + group.tests.length, 0),
+            turnedOffCount(sections),
             sections.removed.length,
             sections.deletedFiles.length,
             sections.assertsNothing.length,
@@ -80,7 +80,12 @@ export function renderReport(sections, facts, limit) {
             ]
                 .filter(Boolean)
                 .join('; ') || 'no reason given';
-            return group.tests.map((item) => [text(item.name), location(item), code(group.state), why]);
+            return group.tests.map((item) => [
+                item.count > 1 ? `${text(item.name)} (${plural(item.count, 'test')})` : text(item.name),
+                location(item),
+                code(group.state),
+                why,
+            ]);
         });
         lines.push(...table(['Test', 'Location', 'State', 'When or why'], rows), '');
     }

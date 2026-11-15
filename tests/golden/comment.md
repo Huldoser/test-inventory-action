@@ -3,7 +3,7 @@
 
 | Won't run | Turned off | Removed | Test files deleted | No assertions left |
 | :-: | :-: | :-: | :-: | :-: |
-| **7** | **3** | **1** | **1** | **1** |
+| **7** | **4** | **1** | **1** | **1** |
 
 #### Won't run · [`file-not-run`](https://huldoser.github.io/test-inventory/reference/diagnostics)
 
@@ -18,7 +18,7 @@
 | --- | --- | --- | --- |
 | price alerts &gt; notifies when the price crosses above the alert | `tests/alerts.spec.ts:11` | `skip` | when `process.env.MARKET === 'closed'`; Alerts only trigger while the market is open |
 | login &gt; asks for a one-time code | `tests/login.spec.ts:25` | `fixme` | no reason given |
-| broker sandbox &gt; places a paper order | `tests/broker/sandbox.test.ts:4` | `skip` | always now; before, only when `!(process.env.BROKER_API_KEY)` |
+| broker sandbox (2 tests) | `tests/broker/sandbox.test.ts:3` | `skip` | always now; before, only when `!(process.env.BROKER_API_KEY)` |
 
 #### Removed · [how tests are matched](https://huldoser.github.io/test-inventory/guide/diff#matches-and-changes)
 

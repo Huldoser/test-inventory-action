@@ -181,6 +181,7 @@ describe("a pull request's test changes, by section", () => {
             "state": "skip",
             "tests": [
               {
+                "count": 1,
                 "file": "tests/risk/stop-loss.test.ts",
                 "line": 4,
                 "name": "stop-loss > never lowers a long stop",
@@ -194,6 +195,7 @@ describe("a pull request's test changes, by section", () => {
             "state": "skip",
             "tests": [
               {
+                "count": 1,
                 "file": "tests/risk/stop-loss.test.ts",
                 "line": 8,
                 "name": "stop-loss > places a short stop above the entry",
@@ -244,14 +246,25 @@ describe("a pull request's test changes, by section", () => {
     expect(sections.added).toEqual([{ name: 'places a limit order', file: 'e2e/place-order.spec.ts', line: 2 }]);
   });
 
-  it('reports tests that skipped only without a broker key and now always skip', async () => {
-    const sandbox = (declare: string) =>
+  it('reports tests that skipped only without a broker key and now always skip, one row for each suite', async () => {
+    const broker = (declare: string) =>
       [
         "import { describe, expect, it } from 'vitest';",
         '',
         `${declare}('broker sandbox', () => {`,
-        "  it('places a paper order', () => {\n    expect('accepted').toBe('accepted');\n  });",
+        "  describe('paper orders', () => {",
+        "    it('places a paper order', () => {\n      expect('accepted').toBe('accepted');\n    });",
+        '  });',
         "  it('cancels a paper order', () => {\n    expect('cancelled').toBe('cancelled');\n  });",
+        '});',
+        '',
+        `${declare}('market data', () => {`,
+        "  it('streams quotes for a watchlist', () => {\n    expect(['AAPL'].length).toBe(1);\n  });",
+        "  it('reconnects after a dropped feed', () => {\n    expect('connected').toBe('connected');\n  });",
+        '});',
+        '',
+        `${declare}('order book', () => {`,
+        "  it('shows the best bid and ask', () => {\n    expect(187.49 < 187.51).toBe(true);\n  });",
         '});',
         '',
       ].join('\n');
@@ -259,9 +272,9 @@ describe("a pull request's test changes, by section", () => {
       {
         'package.json': VITEST_PACKAGE,
         'vitest.config.ts': CONFIG,
-        'tests/broker/sandbox.test.ts': sandbox('describe.runIf(process.env.BROKER_API_KEY)'),
+        'tests/broker/sandbox.test.ts': broker('describe.runIf(process.env.BROKER_API_KEY)'),
       },
-      { 'tests/broker/sandbox.test.ts': sandbox('describe.runIf(process.env.BROKER_API_KEY).skip') },
+      { 'tests/broker/sandbox.test.ts': broker('describe.runIf(process.env.BROKER_API_KEY).skip') },
       ['tests/broker/sandbox.test.ts'],
     );
     expect(sections.turnedOff).toEqual([
@@ -271,8 +284,9 @@ describe("a pull request's test changes, by section", () => {
         reason: null,
         was: '!(process.env.BROKER_API_KEY)',
         tests: [
-          { name: 'broker sandbox > places a paper order', file: 'tests/broker/sandbox.test.ts', line: 4 },
-          { name: 'broker sandbox > cancels a paper order', file: 'tests/broker/sandbox.test.ts', line: 7 },
+          { name: 'broker sandbox', file: 'tests/broker/sandbox.test.ts', line: 3, count: 2 },
+          { name: 'market data', file: 'tests/broker/sandbox.test.ts', line: 14, count: 2 },
+          { name: 'order book > shows the best bid and ask', file: 'tests/broker/sandbox.test.ts', line: 24, count: 1 },
         ],
       },
     ]);
