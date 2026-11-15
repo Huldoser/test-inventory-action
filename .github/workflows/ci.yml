@@ -90,7 +90,7 @@ jobs:
         with:
           persist-credentials: false
       - id: tests
-        uses: ./
+        uses: $/
       - name: Check the outputs
         shell: bash
         env:
