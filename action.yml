@@ -1,0 +1,73 @@
+name: test-inventory
+description: Comments on each pull request with what it does to the tests, without running them.
+author: Andrey Rychkov
+branding:
+  icon: check-square
+  color: green
+
+inputs:
+  mode:
+    description: >-
+      `scan` in a `pull_request` workflow, which writes the report; `comment` in the `workflow_run` workflow that posts
+      it on the pull request.
+    default: scan
+  github-token:
+    description: >-
+      The token that downloads the scan's report and writes the comment, in comment mode; in scan mode, it fetches
+      the base commit and asks where a checked-out pull request head last met its base branch.
+    default: ${{ github.token }}
+  artifact-name:
+    description: The name of the artifact the scan's report is uploaded as, which comment mode downloads.
+    default: test-inventory-report
+  timeout-minutes:
+    description: How long the scan may take; past it the action stops and writes no report.
+    default: '10'
+
+outputs:
+  wont-run:
+    description: Tests in files no runner config collects, new in this pull request or no longer collected.
+    value: ${{ steps.run.outputs.wont-run }}
+  turned-off:
+    description: Existing tests this pull request turns off.
+    value: ${{ steps.run.outputs.turned-off }}
+  removed:
+    description: Tests removed from files that gained none.
+    value: ${{ steps.run.outputs.removed }}
+  asserts-nothing:
+    description: Tests that had assertions and have none left.
+    value: ${{ steps.run.outputs.asserts-nothing }}
+  report-dir:
+    description: The folder holding report.json, to upload as the artifact comment mode reads.
+    value: ${{ steps.run.outputs.report-dir }}
+
+runs:
+  using: composite
+  steps:
+    - name: Check Node.js
+      shell: bash
+      run: >-
+        node -e "const [major, minor] = process.versions.node.split('.').map(Number);
+        if (major < 22 || (major === 22 && minor < 12)) {
+        console.error('test-inventory needs Node.js 22.12 or newer; add actions/setup-node before this step.');
+        process.exit(1); }"
+    - name: Install test-inventory
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+    - name: Download the scan's report
+      if: inputs.mode == 'comment'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        RUN_ID: ${{ github.event.workflow_run.id }}
+        ARTIFACT: ${{ inputs.artifact-name }}
+        REPORT_DIR: ${{ runner.temp }}/test-inventory-report
+      run: gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --name "$ARTIFACT" --dir "$REPORT_DIR"
+    - id: run
+      shell: bash
+      env:
+        MODE: ${{ inputs.mode }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        TIMEOUT_MINUTES: ${{ inputs.timeout-minutes }}
+        REPORT_DIR: ${{ runner.temp }}/test-inventory-report
+      run: node "$GITHUB_ACTION_PATH/dist/bin.js"
