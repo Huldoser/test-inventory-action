@@ -31,13 +31,14 @@ describe('the runners and possible test files of a repository', () => {
     });
   });
 
-  it("doesn't take a runner from an example that imports it or a test named after it", () => {
+  it("doesn't take a runner from an example that imports it, or a test or source file named after it", () => {
     const root = folder();
     write(root, {
       'package.json': JSON.stringify({ devDependencies: { mocha: '11.7.0' } }),
       'test/jest_results.spec.js':
         "describe('Jest results import', () => {\n  it('reads a failed fill', () => {});\n});\n",
       'docs/examples/cypress_watchlist.cy.js': "describe('watchlist', () => {\n  it('adds a symbol', () => {});\n});\n",
+      'src/importers/jasmine.js': 'export function importJasmineResults(report) {\n  return report.suites;\n}\n',
       'docs/examples/place-order.ts':
         "import { test } from '@playwright/test';\ntest('places a limit order', async () => {});\n",
     });
@@ -52,7 +53,7 @@ describe('the runners and possible test files of a repository', () => {
     ['wdio.local.conf.ts', 'webdriverio'],
     ['cypress.json', 'cypress'],
     ['.mocharc.jsonc', 'mocha'],
-    ['jasmine.mjs', 'jasmine'],
+    ['jasmine.json', 'jasmine'],
   ])('takes %s for a %s config', (name, runner) => {
     const root = folder();
     write(root, { [name]: 'export default {};\n' });

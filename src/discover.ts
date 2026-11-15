@@ -23,7 +23,8 @@ const RUNNER_PACKAGES = new Map<string, Framework>([
 ]);
 /**
  * A runner's config file name, with variants such as `vitest.config.e2e.ts`, `playwright-ct.config.ts` or
- * `wdio.local.conf.ts`; a test named after a runner, such as `jest_results.spec.js`, isn't one.
+ * `wdio.local.conf.ts`; a test or source file named after a runner, such as `jest_results.spec.js` or `jasmine.js`,
+ * isn't one.
  */
 const configOf = (runner: string) =>
   new RegExp(`^${runner}(?:[.-][\\w-]+)*[.-](?:config|conf|workspace)(?:\\.[\\w-]+)?\\.(?:[cm]?[jt]s|json)$`);
@@ -35,7 +36,7 @@ const CONFIGS: [RegExp, Framework][] = [
   [/^cypress\.json$/, 'cypress'],
   [configOf('wdio'), 'webdriverio'],
   [/^\.mocharc\.(?:[cm]?js|jsonc?|ya?ml)$/, 'mocha'],
-  [/^jasmine\.(?:json|[cm]?js)$/, 'jasmine'],
+  [/^jasmine\.json$/, 'jasmine'],
 ];
 const SKIPPED_FOLDERS = new Set(['node_modules', '.git', 'vendor', 'dist', 'build', 'coverage']);
 const TEST_PATH =
