@@ -21,8 +21,8 @@
     "coverage": "vitest run --coverage",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write . --ignore-path .gitignore --ignore-path .prettierignore --ignore-path .git/info/exclude",
-    "format:check": "node scripts/format-check.ts",
+    "format": "node scripts/format.ts --write",
+    "format:check": "node scripts/format.ts --check",
     "changeset": "changeset"
   },
   "dependencies": {
