@@ -89,8 +89,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # actionlint 1.7.12 doesn't know GitHub's `$/` self-repository syntax yet, so this stays `./`:
+      # https://github.com/rhysd/actionlint/issues/711
       - id: tests
-        uses: $/
+        uses: ./ # zizmor: ignore[self-repository]
       - name: Check the outputs
         shell: bash
         env:
