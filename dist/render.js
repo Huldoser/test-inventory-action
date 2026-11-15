@@ -9,13 +9,17 @@ const ASSETS = 'https://raw.githubusercontent.com/Huldoser/test-inventory/v0.10.
 const MARK = `<picture><source media="(prefers-color-scheme: dark)" srcset="${ASSETS}/mark-small-dark.svg"><img src="${ASSETS}/mark-small-light.svg" alt="" width="20" height="20" align="top"></picture>`;
 /** Text from the scanned project, such as a title or a reason, shown as plain text: no Markdown, HTML or mention. */
 export function text(value) {
-    return value
+    return (value
         .replace(/\s+/g, ' ')
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
+        // Issue references, web addresses and mentions would become links from the bot.
+        .replace(/#/g, '&#35;')
         .replace(/@/g, '&#64;')
-        .replace(/[\\`*_{}[\]~]/g, '\\$&');
+        .replace(/:\/\//g, '&#58;//')
+        .replace(/(www)\./gi, '$1&#46;')
+        .replace(/[\\`*_{}[\]~]/g, '\\$&'));
 }
 /** A path or a condition as code, in a fence longer than any run of backticks inside it. */
 export function code(value) {
@@ -62,7 +66,8 @@ const SHOWN = 10;
  * so each one is escaped.
  */
 function table(header, rows, align = header.map(() => '---')) {
-    const line = (cells) => `| ${cells.map((cell) => cell.replaceAll('|', '\\|')).join(' | ')} |`;
+    // A backslash before the escaped pipe would escape the escape, so each one before a pipe is doubled too.
+    const line = (cells) => `| ${cells.map((cell) => cell.replace(/\\*\|/g, (pipe) => `${'\\'.repeat((pipe.length - 1) * 2)}\\|`)).join(' | ')} |`;
     const shown = rows.slice(0, LIST_LIMIT).map(line);
     if (rows.length > LIST_LIMIT)
         shown.push(line([`and ${rows.length - LIST_LIMIT} more`, ...header.slice(1).map(() => '')]));

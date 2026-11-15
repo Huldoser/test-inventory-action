@@ -193,7 +193,7 @@ describe('scan mode, in a pull_request workflow', () => {
 
 /** A local stand-in for the GitHub API: a pull request at a commit, and its comments. */
 async function api(head: string) {
-  const comments: { id: number; body: string }[] = [];
+  const comments: { id: number; body: string; user: { login: string; type: string } }[] = [];
   const server = createServer((request, response) => {
     let body = '';
     request.on('data', (chunk: Buffer) => (body += chunk.toString()));
@@ -205,7 +205,11 @@ async function api(head: string) {
       else if (route === 'GET /repos/trading-desk/strategy-engine/issues/42/comments')
         response.end(JSON.stringify(comments));
       else if (route === 'POST /repos/trading-desk/strategy-engine/issues/42/comments') {
-        comments.push({ id: comments.length + 1, body: (JSON.parse(body) as { body: string }).body });
+        comments.push({
+          id: comments.length + 1,
+          body: (JSON.parse(body) as { body: string }).body,
+          user: { login: 'github-actions[bot]', type: 'Bot' },
+        });
         response.statusCode = 201;
         response.end('{}');
       } else {

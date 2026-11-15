@@ -234,6 +234,22 @@ describe('the verdict at the top', () => {
 });
 
 describe('text from the scanned project', () => {
+  it('keeps a backslash before a pipe in a path from ending the table cell', () => {
+    const body = renderReport(
+      { ...EMPTY, deletedFiles: [{ file: 'tests/quotes\\|legacy.test.ts', tests: 1 }] },
+      FACTS,
+      SUMMARY_LIMIT,
+      SOURCE,
+    );
+    expect(body).toContain('| [`tests/quotes\\\\\\|legacy.test.ts`](');
+  });
+
+  it('shows links and issue references in a title as text, not as links', () => {
+    expect(text('fills order #42 as in https://desk.example/runbook and www.desk.example')).toBe(
+      'fills order &#35;42 as in https&#58;//desk.example/runbook and www&#46;desk.example',
+    );
+  });
+
   it('shows a title as plain text, with no Markdown, HTML or mention', () => {
     expect(text('fills **all** <script>alert(1)</script> for @desk-team & [docs](x) `code`\n~~now~~')).toBe(
       'fills \\*\\*all\\*\\* &lt;script&gt;alert(1)&lt;/script&gt; for &#64;desk-team &amp; \\[docs\\](x) \\`code\\` \\~\\~now\\~\\~',

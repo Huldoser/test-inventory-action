@@ -44,7 +44,8 @@ export class GitHub {
         let existing;
         for (let page = 1; existing === undefined; page++) {
             const comments = (await this.request('GET', `/repos/${repository}/issues/${number}/comments?per_page=100&page=${page}`));
-            const found = comments.find((comment) => comment.body?.startsWith(MARKER));
+            // Anyone can write the marker; only a bot's comment, such as the workflow token's, is the action's own.
+            const found = comments.find((comment) => comment.user?.type === 'Bot' && comment.body?.startsWith(MARKER));
             if (found)
                 existing = { id: found.id, body: found.body };
             if (comments.length < 100)
