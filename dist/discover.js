@@ -19,25 +19,32 @@ const RUNNER_PACKAGES = new Map([
     ['node:test', 'node'],
     ['bun:test', 'bun'],
 ]);
-const CONFIG_RUNNERS = {
-    jest: 'jest',
-    vitest: 'vitest',
-    playwright: 'playwright',
-    cypress: 'cypress',
-    wdio: 'webdriverio',
-    '.mocharc': 'mocha',
-    jasmine: 'jasmine',
-};
+/**
+ * A runner's config file name, with variants such as `vitest.config.e2e.ts`, `playwright-ct.config.ts` or
+ * `wdio.local.conf.ts`; a test named after a runner, such as `jest_results.spec.js`, isn't one.
+ */
+const configOf = (runner) => new RegExp(`^${runner}(?:[.-][\\w-]+)*[.-](?:config|conf|workspace)(?:\\.[\\w-]+)?\\.(?:[cm]?[jt]s|json)$`);
+const CONFIGS = [
+    [configOf('jest'), 'jest'],
+    [configOf('vitest'), 'vitest'],
+    [configOf('playwright'), 'playwright'],
+    [configOf('cypress'), 'cypress'],
+    [/^cypress\.json$/, 'cypress'],
+    [configOf('wdio'), 'webdriverio'],
+    [/^\.mocharc\.(?:[cm]?js|jsonc?|ya?ml)$/, 'mocha'],
+    [/^jasmine\.(?:json|[cm]?js)$/, 'jasmine'],
+];
 const SKIPPED_FOLDERS = new Set(['node_modules', '.git', 'vendor', 'dist', 'build', 'coverage']);
-const CONFIG = /^(jest|vitest|playwright|cypress|wdio|\.mocharc|jasmine)\.?(?:config)?[.\w-]*\.(?:[cm]?[jt]s|json|ya?ml)$/;
 const TEST_PATH = /(?:^|\/)(?:__tests__|tests?|specs?|e2e|cypress)\/|[._-](?:test|spec|e2e|cy)\.[cm]?[jt]sx?$|Spec\.js$/;
 const SOURCE = /\.[cm]?[jt]sx?$/;
 const DECLARES = /\b(?:test|it|describe|suite|specify|context)\b/;
 const IMPORTS = /(?:from\s*|require\s*\(\s*|import\s*\(\s*)['"]([^'"]+)['"]/g;
 /**
- * Finds the runners a repository uses, from its package.json dependencies, its runner configs and the runners its
- * files import, and the files that may declare tests: under a test folder or named like a test, or importing a runner,
- * and calling a test function. Each runner's scan then decides which of them it runs.
+ * Finds the runners a repository uses, from its package.json dependencies and its runner configs, and the files that
+ * may declare tests: under a test folder or named like a test, or importing a runner, and calling a test function.
+ * Node's and Bun's runners come with the runtime, so a file importing one is enough; an example importing another
+ * runner the repository doesn't install doesn't make it one it uses. Each runner's scan then decides which files it
+ * runs.
  */
 export function discover(root) {
     const runners = new Set();
@@ -53,9 +60,9 @@ export function discover(root) {
             }
             if (!item.isFile())
                 continue;
-            const config = CONFIG.exec(item.name);
-            if (config)
-                runners.add(CONFIG_RUNNERS[config[1]]);
+            for (const [config, runner] of CONFIGS)
+                if (config.test(item.name))
+                    runners.add(runner);
             if (item.name === 'package.json') {
                 for (const name of dependenciesOf(file)) {
                     const runner = RUNNER_PACKAGES.get(name);
@@ -68,7 +75,8 @@ export function discover(root) {
                 const code = readFileSync(file, 'utf8');
                 const imported = [...code.matchAll(IMPORTS)].flatMap((match) => RUNNER_PACKAGES.get(match[1]) ?? []);
                 for (const runner of imported)
-                    runners.add(runner);
+                    if (runner === 'node' || runner === 'bun')
+                        runners.add(runner);
                 if ((TEST_PATH.test(relative) || imported.length > 0) && DECLARES.test(code))
                     files.push(relative);
             }

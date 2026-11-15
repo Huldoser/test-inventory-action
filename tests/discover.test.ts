@@ -30,4 +30,32 @@ describe('the runners and possible test files of a repository', () => {
       files: ['scripts/replay.ts', 'src/fees.unit.ts', 'tests/fees.test.ts'],
     });
   });
+
+  it("doesn't take a runner from an example that imports it or a test named after it", () => {
+    const root = folder();
+    write(root, {
+      'package.json': JSON.stringify({ devDependencies: { mocha: '11.7.0' } }),
+      'test/jest_results.spec.js':
+        "describe('Jest results import', () => {\n  it('reads a failed fill', () => {});\n});\n",
+      'docs/examples/cypress_watchlist.cy.js': "describe('watchlist', () => {\n  it('adds a symbol', () => {});\n});\n",
+      'docs/examples/place-order.ts':
+        "import { test } from '@playwright/test';\ntest('places a limit order', async () => {});\n",
+    });
+    expect(discover(root).runners).toEqual(['mocha']);
+  });
+
+  it.each([
+    ['vitest.config.e2e.ts', 'vitest'],
+    ['vitest.workspace.ts', 'vitest'],
+    ['playwright-ct.config.ts', 'playwright'],
+    ['jest.config.base.cjs', 'jest'],
+    ['wdio.local.conf.ts', 'webdriverio'],
+    ['cypress.json', 'cypress'],
+    ['.mocharc.jsonc', 'mocha'],
+    ['jasmine.mjs', 'jasmine'],
+  ])('takes %s for a %s config', (name, runner) => {
+    const root = folder();
+    write(root, { [name]: 'export default {};\n' });
+    expect(discover(root).runners).toEqual([runner]);
+  });
 });

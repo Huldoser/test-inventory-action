@@ -111,6 +111,8 @@ The scan reads source and configs; it runs nothing. These are out of its reach:
 - Tests registered at run time, configs computed from environment variables, and settings it can't work out, which it
   reports as unknown rather than guess.
 - A config named only in a CI workflow, or chosen by a wrapper script, rather than in a package.json script.
+- A runner that no package.json lists and that has no config file of its usual name, other than Node's and Bun's
+  built-in runners.
 - Very large repositories may pass the time limit; the job summary then says so.
 
 [Known limits](https://huldoser.github.io/test-inventory/guide/limits) has the scanner's full list.
