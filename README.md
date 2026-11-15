@@ -25,6 +25,20 @@ The rest is collapsed:
 
 When nothing needs a look, the action posts no comment, or updates its earlier one to say so.
 
+## Alongside your test results reporter
+
+A results reporter says which tests passed and failed in a run. This action reads the tests themselves, before
+anything runs, so it covers what a run can't show:
+
+- tests no runner config collects, which no run reports;
+- the condition and reason that turn a test off;
+- a renamed test as a rename, rather than a removal and an addition;
+- a test that lost its assertions, which a run still counts as passed;
+- pull requests whose tests didn't run at all, such as when a path filter skipped the job.
+
+It needs no reporter setup, results file or account, and it runs none of the pull request's code, so it works the same
+on pull requests from forks. Keep your reporter for failures and timings: the two answer different questions.
+
 ## Usage
 
 Two workflows: one scans with read-only access, and one posts the comment once the scan has finished. The second one
