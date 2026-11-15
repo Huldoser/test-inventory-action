@@ -12,8 +12,8 @@ export interface TestRef {
 
 /** What a pull request does to the tests, sorted into the comment's sections. */
 export interface Sections {
-  /** Test files no runner collects: new ones, and ones a change stopped collecting. */
-  wontRun: { file: string; tests: number; change: 'new' | 'stopped' }[];
+  /** Test files no runner collects, new ones and ones a change stopped collecting, with the nearest config. */
+  wontRun: { file: string; tests: number; change: 'new' | 'stopped'; config: string | null }[];
   /**
    * Existing tests that now skip, grouped by what turns them off. Tests a describe turns off together are one entry,
    * named by the suites they share and placed where the describe sets the state, with `count` tests; a test on its own
@@ -114,12 +114,27 @@ export function sectionsOf(base: RevisionScan, head: RevisionScan, changedFiles:
     fewerAssertions: [],
     added: [],
   };
+  // The config each refused file falls under, from the runner that refused it, for the comment to point to.
+  const configs = new Map<string, string | null>();
+  for (const inventory of Object.values(head.inventories)) {
+    const refused = new Set(
+      inventory.diagnostics.filter((d) => d.code === 'file-not-run').map((d) => d.relativeFilePath),
+    );
+    for (const file of inventory.files)
+      if (refused.has(file.relativeFilePath) && !configs.has(file.relativeFilePath))
+        configs.set(file.relativeFilePath, file.config);
+  }
   const wontRun = new Set<string>();
   for (const [file, status] of head.statuses) {
     if (status !== 'wont-run') continue;
     wontRun.add(file);
     if (base.statuses.get(file) === 'wont-run') continue;
-    sections.wontRun.push({ file, tests: testsIn(head, file), change: baseFiles.has(file) ? 'stopped' : 'new' });
+    sections.wontRun.push({
+      file,
+      tests: testsIn(head, file),
+      change: baseFiles.has(file) ? 'stopped' : 'new',
+      config: configs.get(file) as string | null,
+    });
   }
 
   const removed: TestRecord[] = [];

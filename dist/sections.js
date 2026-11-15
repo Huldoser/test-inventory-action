@@ -62,6 +62,14 @@ export function sectionsOf(base, head, changedFiles) {
         fewerAssertions: [],
         added: [],
     };
+    // The config each refused file falls under, from the runner that refused it, for the comment to point to.
+    const configs = new Map();
+    for (const inventory of Object.values(head.inventories)) {
+        const refused = new Set(inventory.diagnostics.filter((d) => d.code === 'file-not-run').map((d) => d.relativeFilePath));
+        for (const file of inventory.files)
+            if (refused.has(file.relativeFilePath) && !configs.has(file.relativeFilePath))
+                configs.set(file.relativeFilePath, file.config);
+    }
     const wontRun = new Set();
     for (const [file, status] of head.statuses) {
         if (status !== 'wont-run')
@@ -69,7 +77,12 @@ export function sectionsOf(base, head, changedFiles) {
         wontRun.add(file);
         if (base.statuses.get(file) === 'wont-run')
             continue;
-        sections.wontRun.push({ file, tests: testsIn(head, file), change: baseFiles.has(file) ? 'stopped' : 'new' });
+        sections.wontRun.push({
+            file,
+            tests: testsIn(head, file),
+            change: baseFiles.has(file) ? 'stopped' : 'new',
+            config: configs.get(file),
+        });
     }
     const removed = [];
     const added = [];
