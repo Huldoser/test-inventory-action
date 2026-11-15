@@ -18,5 +18,7 @@
     line;
   - one comment, updated on every push, and none when nothing needs a look; it never fails a check.
 - Two workflows: a read-only scan on `pull_request`, and a `workflow_run` step that posts the comment, so pull
-  requests from forks get it too. The comment step checks the scan's report field by field and posts only when the
-  pull request is at the commit that was scanned.
+  requests from forks get it too. The comment step treats the scan's report as untrusted: it checks every field,
+  refuses paths and sizes that could change the comment's markup, posts only when the pull request is at the commit
+  that was scanned, and only edits a comment a bot wrote
+  ([#6](https://github.com/Huldoser/test-inventory-action/pull/6)).
