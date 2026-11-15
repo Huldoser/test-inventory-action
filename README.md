@@ -63,7 +63,7 @@ jobs:
         with:
           persist-credentials: false
       - id: tests
-        uses: Huldoser/test-inventory-action@<commit SHA> # v0.1.0
+        uses: Huldoser/test-inventory-action@b1a31bbf853f1033d151c86d05dd761653e04918 # v0.1.0
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: test-inventory-report
@@ -75,7 +75,7 @@ jobs:
 # .github/workflows/test-changes-comment.yml
 name: Test changes comment
 on:
-  workflow_run:
+  workflow_run: # zizmor: ignore[dangerous-triggers]
     workflows: [Test changes]
     types: [completed]
 permissions:
@@ -86,7 +86,7 @@ jobs:
     if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
-      - uses: Huldoser/test-inventory-action@<commit SHA> # v0.1.0
+      - uses: Huldoser/test-inventory-action@b1a31bbf853f1033d151c86d05dd761653e04918 # v0.1.0
         with:
           mode: comment
 ```
@@ -100,6 +100,9 @@ GitHub for with the job's token.
 
 The comment workflow reads the report the scan uploaded as data and checks it field by field. It posts only if the
 pull request is still at the commit that was scanned, and only edits a comment a bot wrote.
+
+zizmor's `dangerous-triggers` audit flags every `workflow_run` workflow. This one checks out no code, reads the report
+as data and posts only for the commit that was scanned, so the example ignores that finding on its trigger line.
 
 ### Pull requests from forks
 
