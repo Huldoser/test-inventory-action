@@ -34,6 +34,14 @@ const REPORT: Report = {
 describe("the scan's report, as the comment step reads it", () => {
   it('reads back what the scan writes', () => {
     expect(parseReport(JSON.parse(JSON.stringify(REPORT)))).toEqual(REPORT);
+    const outsideConfigs: Report = {
+      ...REPORT,
+      sections: {
+        ...REPORT.sections,
+        wontRun: [{ file: 'scripts/replay-feed.test.ts', tests: 2, change: 'new', config: null }],
+      },
+    };
+    expect(parseReport(JSON.parse(JSON.stringify(outsideConfigs)))).toEqual(outsideConfigs);
   });
 
   // A pull request from a fork runs its own copy of the workflow that writes the report.
@@ -91,9 +99,41 @@ describe("the scan's report, as the comment step reads it", () => {
       'facts.runners[0].version',
       { ...REPORT, facts: { ...REPORT.facts, runners: [{ framework: 'vitest', version: 5 }] } },
     ],
+    [
+      'wontRun[0].config',
+      {
+        ...REPORT,
+        sections: {
+          ...REPORT.sections,
+          wontRun: [{ file: 'a.spec.ts', tests: 1, change: 'new', config: '../../vitest.config.ts' }],
+        },
+      },
+    ],
+    // Links to the files are built from facts.head, so it must be the commit the comment step checks.
+    ['facts.head', { ...REPORT, facts: { ...REPORT.facts, head: '0123456789abcdef0123456789abcdef01234567' } }],
+    [
+      'removed[0].name',
+      { ...REPORT, sections: { ...REPORT.sections, removed: [{ ...test, name: 'x'.repeat(2_001) }] } },
+    ],
+    ['facts.core', { ...REPORT, facts: { ...REPORT.facts, core: '0.10.4'.repeat(20) } }],
+    ['added', { ...REPORT, sections: { ...REPORT.sections, added: Array.from({ length: 100_001 }, () => test) } }],
   ])('refuses a report whose %s is not what the scan writes', (where, value) => {
     expect(() => parseReport(value)).toThrow(
       `The scan's report.json isn't one this version of the action writes: ${where} is not valid.`,
     );
+  });
+
+  // A path becomes a link to the repository and a code span in a table, so it may only be a plain relative path.
+  it.each([
+    '../../../../evil-org/repo/blob/main/orders.test.ts',
+    '/etc/hosts',
+    'tests/orders\\|<b>@desk-team</b>.test.ts',
+    'tests/orders\u0007.test.ts',
+    'tests//orders.test.ts',
+    'tests/./orders.test.ts',
+    '',
+  ])('refuses the path %j', (file) => {
+    const value = { ...REPORT, sections: { ...REPORT.sections, removed: [{ ...test, file }] } };
+    expect(() => parseReport(value)).toThrow('removed[0].file is not valid');
   });
 });

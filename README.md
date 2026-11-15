@@ -94,7 +94,15 @@ pull request's head commit instead gets it compared with where it last met the b
 GitHub for with the job's token.
 
 The comment workflow reads the report the scan uploaded as data and checks it field by field. It posts only if the
-pull request is still at the commit that was scanned.
+pull request is still at the commit that was scanned, and only edits a comment a bot wrote.
+
+### Pull requests from forks
+
+A pull request from a fork runs the fork's own copy of the scan workflow, so its author controls what the report says
+and can drop a step that gates on the outputs. The comment workflow keeps the report from posting links, mentions or
+markup of its own, but it can't tell an honest report from a made-up one. On a fork's pull request, read the comment
+as a guide to the diff, not as proof, and keep any gate in a workflow the fork can't change. GitHub asks a maintainer
+to approve workflow runs from first-time contributors.
 
 ## Inputs
 

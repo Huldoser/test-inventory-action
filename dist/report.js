@@ -4,19 +4,39 @@ const STATES = new Set(['active', 'skip', 'fixme', 'todo', 'expectedToFail', 'no
 function invalid(where) {
     throw new Error(`The scan's report.json isn't one this version of the action writes: ${where} is not valid.`);
 }
+/** The longest title, path, condition or reason a report may hold; the core version and runner versions are short. */
+const LONG = 2_000;
+const SHORT = 100;
+/** The most entries a list in a report may hold. */
+const MAX_ITEMS = 100_000;
 const isObject = (value) => typeof value === 'object' && value !== null;
-const str = (value, where) => (typeof value === 'string' ? value : invalid(where));
+const str = (value, where, max = LONG) => typeof value === 'string' && value.length <= max ? value : invalid(where);
+/** A segment of a plain relative path: not empty, `.` or `..`, and without a backslash or control character. */
+function plainSegment(segment) {
+    if (segment === '' || segment === '.' || segment === '..')
+        return false;
+    for (let index = 0; index < segment.length; index++) {
+        const code = segment.charCodeAt(index);
+        if (code < 0x20 || code === 0x7f || code === 0x5c)
+            return false;
+    }
+    return true;
+}
+/** A path in the repository, which becomes a link to it and a code span in a table. */
+const path = (value, where) => typeof value === 'string' && value.length <= LONG && value.split('/').every(plainSegment) ? value : invalid(where);
 const sha = (value, where) => typeof value === 'string' && /^[0-9a-f]{40}$/.test(value) ? value : invalid(where);
 const slug = (value, where) => typeof value === 'string' && /^[\w.-]+\/[\w.-]+$/.test(value) ? value : invalid(where);
-const strOrNull = (value, where) => (value === null ? null : str(value, where));
+const strOrNull = (value, where, max = LONG) => value === null ? null : str(value, where, max);
 const count = (value, where) => typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : invalid(where);
-const array = (value, where, item) => Array.isArray(value) ? value.map((entry, index) => item(entry, `${where}[${index}]`)) : invalid(where);
+const array = (value, where, item) => Array.isArray(value) && value.length <= MAX_ITEMS
+    ? value.map((entry, index) => item(entry, `${where}[${index}]`))
+    : invalid(where);
 const object = (value, where) => (isObject(value) ? value : invalid(where));
 function testRef(value, where) {
     const entry = object(value, where);
     return {
         name: str(entry.name, `${where}.name`),
-        file: str(entry.file, `${where}.file`),
+        file: path(entry.file, `${where}.file`),
         line: count(entry.line, `${where}.line`),
     };
 }
@@ -37,10 +57,10 @@ export function parseReport(value) {
                 const file = object(entry, at);
                 const change = file.change === 'new' || file.change === 'stopped' ? file.change : invalid(`${at}.change`);
                 return {
-                    file: str(file.file, `${at}.file`),
+                    file: path(file.file, `${at}.file`),
                     tests: count(file.tests, `${at}.tests`),
                     change,
-                    config: strOrNull(file.config, `${at}.config`),
+                    config: file.config === null ? null : path(file.config, `${at}.config`),
                 };
             }),
             turnedOff: array(sections.turnedOff, 'turnedOff', (entry, at) => {
@@ -60,7 +80,7 @@ export function parseReport(value) {
             removed: array(sections.removed, 'removed', testRef),
             deletedFiles: array(sections.deletedFiles, 'deletedFiles', (entry, at) => {
                 const file = object(entry, at);
-                return { file: str(file.file, `${at}.file`), tests: count(file.tests, `${at}.tests`) };
+                return { file: path(file.file, `${at}.file`), tests: count(file.tests, `${at}.tests`) };
             }),
             assertsNothing: array(sections.assertsNothing, 'assertsNothing', (entry, at) => ({
                 ...testRef(entry, at),
@@ -69,7 +89,7 @@ export function parseReport(value) {
             rewritten: array(sections.rewritten, 'rewritten', (entry, at) => {
                 const file = object(entry, at);
                 return {
-                    file: str(file.file, `${at}.file`),
+                    file: path(file.file, `${at}.file`),
                     removed: count(file.removed, `${at}.removed`),
                     added: count(file.added, `${at}.added`),
                 };
@@ -80,7 +100,7 @@ export function parseReport(value) {
             }),
             helpersChanged: array(sections.helpersChanged, 'helpersChanged', (entry, at) => {
                 const group = object(entry, at);
-                return { file: str(group.file, `${at}.file`), tests: array(group.tests, `${at}.tests`, testRef) };
+                return { file: path(group.file, `${at}.file`), tests: array(group.tests, `${at}.tests`, testRef) };
             }),
             fewerAssertions: array(sections.fewerAssertions, 'fewerAssertions', (entry, at) => ({
                 ...testRef(entry, at),
@@ -96,16 +116,17 @@ export function parseReport(value) {
                     framework: typeof runner.framework === 'string' && Object.hasOwn(RUNNER_NAMES, runner.framework)
                         ? runner.framework
                         : invalid(`${at}.framework`),
-                    version: strOrNull(runner.version, `${at}.version`),
+                    version: strOrNull(runner.version, `${at}.version`, SHORT),
                 };
             }),
             base: sha(facts.base, 'facts.base'),
-            head: sha(facts.head, 'facts.head'),
+            // Links are built from this commit, so it must be the one the comment step checks the pull request is at.
+            head: facts.head === report.head ? sha(facts.head, 'facts.head') : invalid('facts.head'),
             tests: count(facts.tests, 'facts.tests'),
             seconds: typeof facts.seconds === 'number' && Number.isFinite(facts.seconds) && facts.seconds >= 0
                 ? facts.seconds
                 : invalid('facts.seconds'),
-            core: str(facts.core, 'facts.core'),
+            core: str(facts.core, 'facts.core', SHORT),
         },
     };
 }
