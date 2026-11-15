@@ -45,7 +45,11 @@ export interface Sections {
 /** The sections the comment shows; the others are collapsed. */
 export const VISIBLE = ['wontRun', 'turnedOff', 'removed', 'deletedFiles', 'assertsNothing'] as const;
 
-const ref = (test: TestRecord): TestRef => ({ name: test.fullName, file: test.relativeFilePath, line: test.lineStart });
+const ref = (test: TestRecord): TestRef => ({
+  name: [...test.suitePath, test.title].join(' › '),
+  file: test.relativeFilePath,
+  line: test.lineStart,
+});
 /** Orders tests as a reader meets them: by file, then line. */
 const byLocation = (a: TestRef, b: TestRef) => a.file.localeCompare(b.file, 'en') || a.line - b.line;
 
@@ -76,7 +80,7 @@ function rowsOf(tests: TestRecord[]): Sections['turnedOff'][number]['tests'] {
     }, first.suitePath);
     // A test whose state comes from its suite has the line of the describe that sets it.
     const line = first.stateLine as number;
-    rows.push({ name: shared.join(' > '), file: first.relativeFilePath, line, count: others.length + 1 });
+    rows.push({ name: shared.join(' › '), file: first.relativeFilePath, line, count: others.length + 1 });
   }
   return rows.sort(byLocation);
 }

@@ -67,6 +67,10 @@ describe("the scan's report, as the comment step reads it", () => {
       },
     ],
     [
+      'facts.runners[0].framework',
+      { ...REPORT, facts: { ...REPORT.facts, runners: [{ framework: 'karma', version: '6.4.4' }] } },
+    ],
+    [
       'turnedOff[0].was',
       { ...REPORT, sections: { ...REPORT.sections, turnedOff: [{ ...REPORT.sections.turnedOff[0], was: ['ci'] }] } },
     ],
