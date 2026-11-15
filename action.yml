@@ -13,8 +13,8 @@ inputs:
     default: scan
   github-token:
     description: >-
-      The token that downloads the scan's report and writes the comment, in comment mode; in scan mode, it asks where
-      a checked-out pull request head last met its base branch.
+      The token that downloads the scan's report and writes the comment, in comment mode; in scan mode, it fetches
+      the base commit and asks where a checked-out pull request head last met its base branch.
     default: ${{ github.token }}
   artifact-name:
     description: The name of the artifact the scan's report is uploaded as, which comment mode downloads.

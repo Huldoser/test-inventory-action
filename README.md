@@ -98,12 +98,12 @@ pull request is still at the commit that was scanned.
 
 ## Inputs
 
-| Input             | Default                 | What it does                                                                                                                    |
-| ----------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `mode`            | `scan`                  | `scan` in the `pull_request` workflow, `comment` in the `workflow_run` workflow.                                                |
-| `github-token`    | `${{ github.token }}`   | Downloads the report and writes the comment, in comment mode. In scan mode, finds where a checked-out head met the base branch. |
-| `artifact-name`   | `test-inventory-report` | The artifact comment mode downloads; match the scan's upload.                                                                   |
-| `timeout-minutes` | `10`                    | The time the scan may take; past it the action stops and writes no report.                                                      |
+| Input             | Default                 | What it does                                                                                                                                                |
+| ----------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mode`            | `scan`                  | `scan` in the `pull_request` workflow, `comment` in the `workflow_run` workflow.                                                                            |
+| `github-token`    | `${{ github.token }}`   | Downloads the report and writes the comment, in comment mode. In scan mode, fetches the base commit and finds where a checked-out head met the base branch. |
+| `artifact-name`   | `test-inventory-report` | The artifact comment mode downloads; match the scan's upload.                                                                                               |
+| `timeout-minutes` | `10`                    | The time the scan may take; past it the action stops and writes no report.                                                                                  |
 
 ## Outputs
 

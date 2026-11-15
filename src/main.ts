@@ -12,8 +12,8 @@ import { isQuiet, sectionsOf, turnedOffCount } from './sections.ts';
 /** What a step of the action reads from its environment, as GitHub Actions and `action.yml` set it. */
 export interface Context {
   env: Record<string, string | undefined>;
-  /** Runs git in a folder and gives its output. */
-  git: (args: string[], cwd: string) => string;
+  /** Runs git in a folder, with more environment variables if given, and gives its output. */
+  git: (args: string[], cwd: string, env?: Record<string, string>) => string;
   /** The GitHub API client. */
   github: (token: string, apiUrl: string) => GitHub;
   /** Scans one revision. */
@@ -37,6 +37,19 @@ function setOutputs(env: Context['env'], outputs: Record<string, string | number
       .map(([name, value]) => `${name}=${value}\n`)
       .join(''),
   );
+}
+
+/**
+ * Git settings that make a fetch from GitHub send the job's token, as `actions/checkout` does: a private repository's
+ * checkout without persisted credentials can't fetch otherwise. They go in the environment, never the command line.
+ */
+function withToken(env: Context['env']): Record<string, string> {
+  const credentials = Buffer.from(`x-access-token:${required(env, 'GITHUB_TOKEN')}`).toString('base64');
+  return {
+    GIT_CONFIG_COUNT: '1',
+    GIT_CONFIG_KEY_0: `http.${required(env, 'GITHUB_SERVER_URL')}/.extraheader`,
+    GIT_CONFIG_VALUE_0: `AUTHORIZATION: basic ${credentials}`,
+  };
 }
 
 /** The parts of a `pull_request` event's pull request the scan reads. */
@@ -85,7 +98,7 @@ export async function scanPullRequest(context: Context): Promise<void> {
   try {
     git(['cat-file', '-e', `${base}^{commit}`], workspace);
   } catch {
-    git(['fetch', '--no-tags', '--depth=1', 'origin', base], workspace);
+    git(['fetch', '--no-tags', '--depth=1', 'origin', base], workspace, withToken(env));
   }
   const baseRoot = path.join(required(env, 'RUNNER_TEMP'), 'test-inventory-base');
   git(['worktree', 'add', '--force', '--detach', baseRoot, base], workspace);
@@ -169,7 +182,13 @@ export async function commentOnPullRequest(context: Context): Promise<string> {
 export async function main(env: Context['env']): Promise<string> {
   const context: Context = {
     env,
-    git: (args, cwd) => execFileSync('git', args, { cwd, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 }),
+    git: (args, cwd, extra) =>
+      execFileSync('git', args, {
+        cwd,
+        encoding: 'utf8',
+        maxBuffer: 256 * 1024 * 1024,
+        env: { ...process.env, ...extra },
+      }),
     github: (token, apiUrl) => new GitHub(token, apiUrl),
     scan: scanRevision,
   };

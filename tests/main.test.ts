@@ -125,17 +125,34 @@ describe('scan mode, in a pull_request workflow', () => {
     expect(read(files.summary)).toContain('| 0 | **1** | 0 | 0 | 0 |');
   });
 
-  it('fetches the base commit when the checkout lacks it', async () => {
+  // A private repository's checkout keeps no credentials when `persist-credentials` is false, as the README has it.
+  it("fetches the base commit the checkout lacks with the job's token, outside the command line", async () => {
     const pr = strategyPullRequest();
     const { env } = runner({ pull_request: { number: 42, base: { sha: pr.base }, head: { sha: pr.head } } });
-    const calls: string[][] = [];
-    const lacking = (args: string[], cwd: string) => {
-      calls.push(args);
+    const fetches: { args: string[]; env?: Record<string, string> }[] = [];
+    const lacking = (args: string[], cwd: string, extra?: Record<string, string>) => {
       if (args[0] === 'cat-file' && args[1] === '-e') throw new Error('fatal: Not a valid object name');
-      return args[0] === 'fetch' ? '' : git(args, cwd);
+      if (args[0] !== 'fetch') return git(args, cwd);
+      fetches.push({ args, env: extra });
+      return '';
     };
-    await scanPullRequest(context({ ...env, GITHUB_WORKSPACE: pr.root }, { git: lacking }));
-    expect(calls).toContainEqual(['fetch', '--no-tags', '--depth=1', 'origin', pr.base]);
+    const steps = {
+      ...env,
+      GITHUB_WORKSPACE: pr.root,
+      GITHUB_TOKEN: 'ghs_EXAMPLE',
+      GITHUB_SERVER_URL: 'https://github.com',
+    };
+    await scanPullRequest(context(steps, { git: lacking }));
+    expect(fetches).toEqual([
+      {
+        args: ['fetch', '--no-tags', '--depth=1', 'origin', pr.base],
+        env: {
+          GIT_CONFIG_COUNT: '1',
+          GIT_CONFIG_KEY_0: 'http.https://github.com/.extraheader',
+          GIT_CONFIG_VALUE_0: `AUTHORIZATION: basic ${Buffer.from('x-access-token:ghs_EXAMPLE').toString('base64')}`,
+        },
+      },
+    ]);
   });
 
   it('writes no report when the scan passes its time limit, and fails the step on any other scan error', async () => {
