@@ -2,9 +2,10 @@ import { execFileSync } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import type { Framework } from 'test-inventory';
 import { discover } from './discover.ts';
 import { GitHub } from './github.ts';
-import { COMMENT_LIMIT, renderReport, SUMMARY_LIMIT, type ScanFacts } from './render.ts';
+import { COMMENT_LIMIT, renderReport, SUMMARY_LIMIT, type ScanFacts, type Source } from './render.ts';
 import { parseReport, type Report } from './report.ts';
 import { scanRevision } from './scan.ts';
 import { isQuiet, sectionsOf, turnedOffCount } from './sections.ts';
@@ -50,6 +51,11 @@ function withToken(env: Context['env']): Record<string, string> {
     GIT_CONFIG_KEY_0: `http.${required(env, 'GITHUB_SERVER_URL')}/.extraheader`,
     GIT_CONFIG_VALUE_0: `AUTHORIZATION: basic ${credentials}`,
   };
+}
+
+/** Where the report links to, from the step's own run, never from a report a pull request's workflow wrote. */
+function sourceOf(env: Context['env']): Source {
+  return { server: required(env, 'GITHUB_SERVER_URL'), repository: required(env, 'GITHUB_REPOSITORY') };
 }
 
 /** The parts of a `pull_request` event's pull request the scan reads. */
@@ -119,7 +125,7 @@ export async function scanPullRequest(context: Context): Promise<void> {
     const sections = sectionsOf(baseScan, headScan, changed);
     const facts: ScanFacts = {
       runners: Object.entries(headScan.inventories).map(([framework, inventory]) => ({
-        framework,
+        framework: framework as Framework,
         version: inventory.frameworkVersion,
       })),
       base,
@@ -137,7 +143,7 @@ export async function scanPullRequest(context: Context): Promise<void> {
     };
     mkdirSync(reportDir, { recursive: true });
     writeFileSync(path.join(reportDir, 'report.json'), `${JSON.stringify(report, null, 2)}\n`);
-    appendFileSync(summary, renderReport(sections, facts, SUMMARY_LIMIT));
+    appendFileSync(summary, renderReport(sections, facts, SUMMARY_LIMIT, sourceOf(env)));
     setOutputs(env, {
       'wont-run': sections.wontRun.reduce((sum, file) => sum + file.tests, 0),
       'turned-off': turnedOffCount(sections),
@@ -173,7 +179,7 @@ export async function commentOnPullRequest(context: Context): Promise<string> {
   if (report.head !== run.head_sha || head !== run.head_sha) {
     return `Pull request #${report.number} is no longer at the commit the scan ran on; a newer scan will post.`;
   }
-  const body = renderReport(report.sections, report.facts, COMMENT_LIMIT);
+  const body = renderReport(report.sections, report.facts, COMMENT_LIMIT, sourceOf(env));
   const result = await github.upsertComment(repository, report.number, body, isQuiet(report.sections));
   return `Comment on #${report.number}: ${result}.`;
 }

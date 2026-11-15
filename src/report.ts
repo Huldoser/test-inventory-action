@@ -1,5 +1,5 @@
-import type { TestState } from 'test-inventory';
-import type { ScanFacts } from './render.ts';
+import type { Framework, TestState } from 'test-inventory';
+import { RUNNER_NAMES, type ScanFacts } from './render.ts';
 import type { Sections, TestRef } from './sections.ts';
 
 /** What the scan hands the comment step: the pull request it is about, and its sections and facts. */
@@ -108,7 +108,10 @@ export function parseReport(value: unknown): Report {
       runners: array(facts.runners, 'facts.runners', (entry, at) => {
         const runner = object(entry, at);
         return {
-          framework: str(runner.framework, `${at}.framework`),
+          framework:
+            typeof runner.framework === 'string' && Object.hasOwn(RUNNER_NAMES, runner.framework)
+              ? (runner.framework as Framework)
+              : invalid(`${at}.framework`),
           version: strOrNull(runner.version, `${at}.version`),
         };
       }),

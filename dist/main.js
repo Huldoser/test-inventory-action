@@ -34,6 +34,10 @@ function withToken(env) {
         GIT_CONFIG_VALUE_0: `AUTHORIZATION: basic ${credentials}`,
     };
 }
+/** Where the report links to, from the step's own run, never from a report a pull request's workflow wrote. */
+function sourceOf(env) {
+    return { server: required(env, 'GITHUB_SERVER_URL'), repository: required(env, 'GITHUB_REPOSITORY') };
+}
 /**
  * The commit a pull request's changes are measured from. A `pull_request` run checks out the pull request merged into
  * its base branch as it is now, so that is the merge's first parent: the event's base.sha doesn't move as the base
@@ -95,7 +99,7 @@ export async function scanPullRequest(context) {
         const sections = sectionsOf(baseScan, headScan, changed);
         const facts = {
             runners: Object.entries(headScan.inventories).map(([framework, inventory]) => ({
-                framework,
+                framework: framework,
                 version: inventory.frameworkVersion,
             })),
             base,
@@ -113,7 +117,7 @@ export async function scanPullRequest(context) {
         };
         mkdirSync(reportDir, { recursive: true });
         writeFileSync(path.join(reportDir, 'report.json'), `${JSON.stringify(report, null, 2)}\n`);
-        appendFileSync(summary, renderReport(sections, facts, SUMMARY_LIMIT));
+        appendFileSync(summary, renderReport(sections, facts, SUMMARY_LIMIT, sourceOf(env)));
         setOutputs(env, {
             'wont-run': sections.wontRun.reduce((sum, file) => sum + file.tests, 0),
             'turned-off': turnedOffCount(sections),
@@ -149,7 +153,7 @@ export async function commentOnPullRequest(context) {
     if (report.head !== run.head_sha || head !== run.head_sha) {
         return `Pull request #${report.number} is no longer at the commit the scan ran on; a newer scan will post.`;
     }
-    const body = renderReport(report.sections, report.facts, COMMENT_LIMIT);
+    const body = renderReport(report.sections, report.facts, COMMENT_LIMIT, sourceOf(env));
     const result = await github.upsertComment(repository, report.number, body, isQuiet(report.sections));
     return `Comment on #${report.number}: ${result}.`;
 }

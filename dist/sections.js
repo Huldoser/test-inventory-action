@@ -3,7 +3,11 @@ import path from 'node:path';
 import { diffInventories } from 'test-inventory';
 /** The sections the comment shows; the others are collapsed. */
 export const VISIBLE = ['wontRun', 'turnedOff', 'removed', 'deletedFiles', 'assertsNothing'];
-const ref = (test) => ({ name: test.fullName, file: test.relativeFilePath, line: test.lineStart });
+const ref = (test) => ({
+    name: [...test.suitePath, test.title].join(' › '),
+    file: test.relativeFilePath,
+    line: test.lineStart,
+});
 /** Orders tests as a reader meets them: by file, then line. */
 const byLocation = (a, b) => a.file.localeCompare(b.file, 'en') || a.line - b.line;
 /** How many tests a pull request turns off. */
@@ -33,7 +37,7 @@ function rowsOf(tests) {
         }, first.suitePath);
         // A test whose state comes from its suite has the line of the describe that sets it.
         const line = first.stateLine;
-        rows.push({ name: shared.join(' > '), file: first.relativeFilePath, line, count: others.length + 1 });
+        rows.push({ name: shared.join(' › '), file: first.relativeFilePath, line, count: others.length + 1 });
     }
     return rows.sort(byLocation);
 }

@@ -1,3 +1,4 @@
+import { RUNNER_NAMES } from "./render.js";
 const STATES = new Set(['active', 'skip', 'fixme', 'todo', 'expectedToFail', 'notLoaded']);
 /** A value that isn't what the report format says, from a scan the comment step can't trust. */
 function invalid(where) {
@@ -87,7 +88,9 @@ export function parseReport(value) {
             runners: array(facts.runners, 'facts.runners', (entry, at) => {
                 const runner = object(entry, at);
                 return {
-                    framework: str(runner.framework, `${at}.framework`),
+                    framework: typeof runner.framework === 'string' && Object.hasOwn(RUNNER_NAMES, runner.framework)
+                        ? runner.framework
+                        : invalid(`${at}.framework`),
                     version: strOrNull(runner.version, `${at}.version`),
                 };
             }),

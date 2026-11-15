@@ -36,6 +36,7 @@ function runner(event: unknown) {
     REPORT_DIR: files.reportDir,
     RUNNER_TEMP: temp,
     GITHUB_REPOSITORY: 'trading-desk/strategy-engine',
+    GITHUB_SERVER_URL: 'https://github.com',
   };
   return { env, files, read: (file: string) => readFileSync(file, 'utf8') };
 }
@@ -70,7 +71,9 @@ describe('scan mode, in a pull_request workflow', () => {
       pull_request: { number: 42, base: { sha: pr.base }, head: { sha: pr.head } },
     });
     expect(await main({ ...env, GITHUB_WORKSPACE: pr.root, MODE: 'scan' })).toBe('Scanned the pull request.');
-    expect(read(files.summary)).toContain('| **1** | **1** | 0 | **1** | 0 |');
+    expect(read(files.summary)).toContain(
+      "> **3 tests need a look before this merges:** 1 won't run, 1 is turned off and 1 was in a deleted file.",
+    );
     expect(read(files.output)).toBe(
       `wont-run=1\nturned-off=1\nremoved=0\nasserts-nothing=0\nreport-dir=${files.reportDir}\n`,
     );
@@ -100,8 +103,10 @@ describe('scan mode, in a pull_request workflow', () => {
     });
     await scanPullRequest(context({ ...env, GITHUB_WORKSPACE: pr.root }));
     expect(read(files.output)).toContain('turned-off=1\nremoved=0\n');
-    expect(read(files.summary)).toContain('| 0 | **1** | 0 | 0 | 0 |');
-    expect(read(files.summary)).toContain(`base ${pr.main.slice(0, 7)} → head ${pr.head.slice(0, 7)}`);
+    expect(read(files.summary)).toContain('> **1 test needs a look before this merges:** 1 is turned off.');
+    expect(read(files.summary)).toContain(
+      `base [\`${pr.main.slice(0, 7)}\`](https://github.com/trading-desk/strategy-engine/commit/${pr.main}) → head`,
+    );
   });
 
   it('asks GitHub where a checked-out head that merged main itself last met main', async () => {
@@ -122,7 +127,7 @@ describe('scan mode, in a pull_request workflow', () => {
     expect(routes).toEqual([
       `https://api.github.com/repos/trading-desk/strategy-engine/compare/main...${head}?per_page=1`,
     ]);
-    expect(read(files.summary)).toContain('| 0 | **1** | 0 | 0 | 0 |');
+    expect(read(files.summary)).toContain('> **1 test needs a look before this merges:** 1 is turned off.');
   });
 
   // A private repository's checkout keeps no credentials when `persist-credentials` is false, as the README has it.
@@ -246,7 +251,7 @@ describe('comment mode, in a workflow_run workflow', () => {
     expect(github.comments).toHaveLength(1);
     expect(github.comments[0].body.startsWith(MARKER)).toBe(true);
     expect(github.comments[0].body).toContain(
-      '| `tests/strategies/mean-reversion.spec.ts` | 1 | a new file no runner config collects |',
+      `| [\`tests/strategies/mean-reversion.spec.ts\`](https://github.com/trading-desk/strategy-engine/blob/${pr.head}/tests/strategies/mean-reversion.spec.ts) | 1 | New in this pull request |`,
     );
   });
 
