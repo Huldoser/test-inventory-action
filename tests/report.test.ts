@@ -9,7 +9,7 @@ const REPORT: Report = {
   head: HEAD,
   sections: {
     wontRun: [{ file: 'tests/strategies/mean-reversion.spec.ts', tests: 3, change: 'new' }],
-    turnedOff: [{ state: 'skip', condition: "browserName === 'webkit'", reason: null, tests: [test] }],
+    turnedOff: [{ state: 'skip', condition: "browserName === 'webkit'", reason: null, was: null, tests: [test] }],
     removed: [test],
     deletedFiles: [{ file: 'tests/orders/limit-order.test.ts', tests: 2 }],
     assertsNothing: [{ ...test, from: 1 }],
@@ -53,6 +53,10 @@ describe("the scan's report, as the comment step reads it", () => {
     [
       'turnedOff[0].reason',
       { ...REPORT, sections: { ...REPORT.sections, turnedOff: [{ ...REPORT.sections.turnedOff[0], reason: 7 }] } },
+    ],
+    [
+      'turnedOff[0].was',
+      { ...REPORT, sections: { ...REPORT.sections, turnedOff: [{ ...REPORT.sections.turnedOff[0], was: ['ci'] }] } },
     ],
     ['removed[0].line', { ...REPORT, sections: { ...REPORT.sections, removed: [{ ...test, line: '4' }] } }],
     ['facts.tests', { ...REPORT, facts: { ...REPORT.facts, tests: '<b>412</b>' } }],

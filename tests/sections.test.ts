@@ -186,6 +186,7 @@ describe("a pull request's test changes, by section", () => {
                 "name": "stop-loss > never lowers a long stop",
               },
             ],
+            "was": null,
           },
           {
             "condition": null,
@@ -198,6 +199,7 @@ describe("a pull request's test changes, by section", () => {
                 "name": "stop-loss > places a short stop above the entry",
               },
             ],
+            "was": null,
           },
         ],
         "wontRun": [
@@ -240,6 +242,40 @@ describe("a pull request's test changes, by section", () => {
     expect(sections.wontRun).toEqual([{ file: 'tests/pnl/fees.test.ts', tests: 1, change: 'stopped' }]);
     expect(sections.deletedFiles).toEqual([{ file: 'test/feed.spec.js', tests: 1 }]);
     expect(sections.added).toEqual([{ name: 'places a limit order', file: 'e2e/place-order.spec.ts', line: 2 }]);
+  });
+
+  it('reports tests that skipped only without a broker key and now always skip', async () => {
+    const sandbox = (declare: string) =>
+      [
+        "import { describe, expect, it } from 'vitest';",
+        '',
+        `${declare}('broker sandbox', () => {`,
+        "  it('places a paper order', () => {\n    expect('accepted').toBe('accepted');\n  });",
+        "  it('cancels a paper order', () => {\n    expect('cancelled').toBe('cancelled');\n  });",
+        '});',
+        '',
+      ].join('\n');
+    const sections = await compare(
+      {
+        'package.json': VITEST_PACKAGE,
+        'vitest.config.ts': CONFIG,
+        'tests/broker/sandbox.test.ts': sandbox('describe.runIf(process.env.BROKER_API_KEY)'),
+      },
+      { 'tests/broker/sandbox.test.ts': sandbox('describe.runIf(process.env.BROKER_API_KEY).skip') },
+      ['tests/broker/sandbox.test.ts'],
+    );
+    expect(sections.turnedOff).toEqual([
+      {
+        state: 'skip',
+        condition: null,
+        reason: null,
+        was: '!(process.env.BROKER_API_KEY)',
+        tests: [
+          { name: 'broker sandbox > places a paper order', file: 'tests/broker/sandbox.test.ts', line: 4 },
+          { name: 'broker sandbox > cancels a paper order', file: 'tests/broker/sandbox.test.ts', line: 7 },
+        ],
+      },
+    ]);
   });
 
   it('is quiet when no test changed', async () => {

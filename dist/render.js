@@ -73,7 +73,11 @@ export function renderReport(sections, facts, limit) {
     if (sections.turnedOff.length > 0) {
         lines.push(heading('Turned off', 'reference/output#how-the-state-is-chosen', 'how the state is chosen'), '');
         const rows = sections.turnedOff.flatMap((group) => {
-            const why = [group.condition !== null && `when ${code(group.condition)}`, group.reason !== null && text(group.reason)]
+            const why = [
+                group.condition !== null && `when ${code(group.condition)}`,
+                group.was !== null && `always now; before, only when ${code(group.was)}`,
+                group.reason !== null && text(group.reason),
+            ]
                 .filter(Boolean)
                 .join('; ') || 'no reason given';
             return group.tests.map((item) => [text(item.name), location(item), code(group.state), why]);

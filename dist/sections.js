@@ -4,6 +4,8 @@ import { diffInventories } from 'test-inventory';
 /** The sections the comment shows; the others are collapsed. */
 export const VISIBLE = ['wontRun', 'turnedOff', 'removed', 'deletedFiles', 'assertsNothing'];
 const ref = (test) => ({ name: test.fullName, file: test.relativeFilePath, line: test.lineStart });
+/** Orders tests as a reader meets them: by file, then line. */
+const byLocation = (a, b) => a.file.localeCompare(b.file, 'en') || a.line - b.line;
 /**
  * Compares the scans of a pull request's base and head, runner by runner, and sorts what changed into sections. Tests
  * in files that won't run are reported there only, and `changedFiles` says which files a dependency change came from.
@@ -58,12 +60,17 @@ export function sectionsOf(base, head, changedFiles) {
             const { kinds, before: was, after: now } = change;
             if (wontRun.has(now.relativeFilePath))
                 continue;
-            if (kinds.includes('newlySkipped')) {
-                const key = `${now.state}\0${now.condition ?? ''}\0${now.reason ?? ''}`;
+            // A test that skipped only on a condition, such as a missing secret, ran wherever the condition was false:
+            // skipping it always turns it off there, though the diff sees only its condition change.
+            const always = was.isConditional && !now.isConditional && !now.isActive;
+            if (kinds.includes('newlySkipped') || always) {
+                const before = always ? was.condition : null;
+                const key = `${now.state}\0${now.condition ?? ''}\0${now.reason ?? ''}\0${before ?? ''}`;
                 const group = turnedOff.get(key) ?? {
                     state: now.state,
                     condition: now.condition,
                     reason: now.reason,
+                    was: before,
                     tests: [],
                 };
                 group.tests.push(ref(now));
@@ -84,7 +91,7 @@ export function sectionsOf(base, head, changedFiles) {
             }
         }
     }
-    sections.turnedOff = [...turnedOff.values()];
+    sections.turnedOff = [...turnedOff.values()].map((group) => ({ ...group, tests: group.tests.sort(byLocation) }));
     sections.helpersChanged = [...helpers].map(([file, tests]) => ({ file, tests }));
     // A file that lost tests and gained others was rewritten, or its tests renamed and edited, or replaced: the diff
     // can't tell these apart, so the comment groups them rather than call the old tests removed.
@@ -113,7 +120,11 @@ export function sectionsOf(base, head, changedFiles) {
     sections.deletedFiles = [...deleted].map(([file, tests]) => ({ file, tests }));
     sections.added = added
         .filter((test) => !wontRun.has(test.relativeFilePath) && !rewritten.has(test.relativeFilePath))
-        .map(ref);
+        .map(ref)
+        .sort(byLocation);
+    sections.removed.sort(byLocation);
+    sections.assertsNothing.sort(byLocation);
+    sections.fewerAssertions.sort(byLocation);
     return sections;
 }
 /** Whether the comment has nothing to show outside its collapsed sections. */

@@ -65,6 +65,7 @@ export function parseReport(value: unknown): Report {
           state,
           condition: strOrNull(group.condition, `${at}.condition`),
           reason: strOrNull(group.reason, `${at}.reason`),
+          was: strOrNull(group.was, `${at}.was`),
           tests: array(group.tests, `${at}.tests`, testRef),
         };
       }),

@@ -14,8 +14,17 @@ export interface TestRef {
 export interface Sections {
   /** Test files no runner collects: new ones, and ones a change stopped collecting. */
   wontRun: { file: string; tests: number; change: 'new' | 'stopped' }[];
-  /** Existing tests that now skip, grouped by what turns them off. */
-  turnedOff: { state: TestState; condition: string | null; reason: string | null; tests: TestRef[] }[];
+  /**
+   * Existing tests that now skip, grouped by what turns them off. `was` is the condition they skipped on before, for
+   * tests that skipped only sometimes and now always do; null for tests that ran before.
+   */
+  turnedOff: {
+    state: TestState;
+    condition: string | null;
+    reason: string | null;
+    was: string | null;
+    tests: TestRef[];
+  }[];
   /** Tests removed from a file that gained none. */
   removed: TestRef[];
   /** Test files the change deletes. */
@@ -35,6 +44,8 @@ export interface Sections {
 export const VISIBLE = ['wontRun', 'turnedOff', 'removed', 'deletedFiles', 'assertsNothing'] as const;
 
 const ref = (test: TestRecord): TestRef => ({ name: test.fullName, file: test.relativeFilePath, line: test.lineStart });
+/** Orders tests as a reader meets them: by file, then line. */
+const byLocation = (a: TestRef, b: TestRef) => a.file.localeCompare(b.file, 'en') || a.line - b.line;
 
 /**
  * Compares the scans of a pull request's base and head, runner by runner, and sorts what changed into sections. Tests
@@ -94,12 +105,17 @@ export function sectionsOf(base: RevisionScan, head: RevisionScan, changedFiles:
       }
       const { kinds, before: was, after: now } = change;
       if (wontRun.has(now.relativeFilePath)) continue;
-      if (kinds.includes('newlySkipped')) {
-        const key = `${now.state}\0${now.condition ?? ''}\0${now.reason ?? ''}`;
+      // A test that skipped only on a condition, such as a missing secret, ran wherever the condition was false:
+      // skipping it always turns it off there, though the diff sees only its condition change.
+      const always = was.isConditional && !now.isConditional && !now.isActive;
+      if (kinds.includes('newlySkipped') || always) {
+        const before = always ? was.condition : null;
+        const key = `${now.state}\0${now.condition ?? ''}\0${now.reason ?? ''}\0${before ?? ''}`;
         const group = turnedOff.get(key) ?? {
           state: now.state,
           condition: now.condition,
           reason: now.reason,
+          was: before,
           tests: [],
         };
         group.tests.push(ref(now));
@@ -118,7 +134,7 @@ export function sectionsOf(base: RevisionScan, head: RevisionScan, changedFiles:
       }
     }
   }
-  sections.turnedOff = [...turnedOff.values()];
+  sections.turnedOff = [...turnedOff.values()].map((group) => ({ ...group, tests: group.tests.sort(byLocation) }));
   sections.helpersChanged = [...helpers].map(([file, tests]) => ({ file, tests }));
 
   // A file that lost tests and gained others was rewritten, or its tests renamed and edited, or replaced: the diff
@@ -144,7 +160,11 @@ export function sectionsOf(base: RevisionScan, head: RevisionScan, changedFiles:
   sections.deletedFiles = [...deleted].map(([file, tests]) => ({ file, tests }));
   sections.added = added
     .filter((test) => !wontRun.has(test.relativeFilePath) && !rewritten.has(test.relativeFilePath))
-    .map(ref);
+    .map(ref)
+    .sort(byLocation);
+  sections.removed.sort(byLocation);
+  sections.assertsNothing.sort(byLocation);
+  sections.fewerAssertions.sort(byLocation);
   return sections;
 }
 

@@ -9,7 +9,8 @@ needs no build, no browsers and no install of your project, and it never fails a
 The comment shows what a reviewer should look at:
 
 - **Won't run**: a new test file no runner config collects, or tests a config change stopped collecting.
-- **Turned off**: existing tests that now skip, grouped by the condition or reason.
+- **Turned off**: existing tests that now skip, grouped by the condition or reason, and tests that skipped only on a
+  condition, such as a missing secret, and now always skip.
 - **Removed**: tests taken out of a file that gained none.
 - **Test files deleted**.
 - **No assertions left**: tests that had `expect` calls and now have none.
