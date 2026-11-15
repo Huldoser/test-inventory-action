@@ -6,6 +6,11 @@ The action scans the pull request's base and head with [test-inventory](https://
 which reads Playwright, Vitest, Jest, Mocha, Jasmine, Cypress, WebdriverIO, node:test and Bun tests from source. It
 needs no build, no browsers and no install of your project, and it never fails a check.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/comment-dark.png">
+  <img alt="The action's comment on a pull request: 5 tests need a look before it merges, with the tests that won't run, are turned off, were removed and have no assertions left, each linked to its line" src="docs/comment-light.png" width="820">
+</picture>
+
 The comment shows what a reviewer should look at:
 
 - **Won't run**: a new test file no runner config collects, or tests a config change stopped collecting.
