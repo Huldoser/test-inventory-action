@@ -1,5 +1,5 @@
 <!-- test-inventory-action -->
-### <picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Huldoser/test-inventory/v0.10.4/docs/public/mark-small-dark.svg"><img src="https://raw.githubusercontent.com/Huldoser/test-inventory/v0.10.4/docs/public/mark-small-light.svg" alt="" width="20" height="20" align="top"></picture> Test changes
+### <picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Huldoser/test-inventory/v0.11.0/docs/public/mark-small-dark.svg"><img src="https://raw.githubusercontent.com/Huldoser/test-inventory/v0.11.0/docs/public/mark-small-light.svg" alt="" width="20" height="20" align="top"></picture> Test changes
 
 > [!WARNING]
 > **14 tests need a look before this merges:** 7 won't run, 4 are turned off, 1 was removed, 1 was in a deleted file and 1 has no assertions left.

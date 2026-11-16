@@ -1,6 +1,6 @@
 {
   "name": "test-inventory-action",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "GitHub Action that comments on each pull request with what it does to the tests, without running them.",
   "repository": {
@@ -26,7 +26,7 @@
     "changeset": "changeset"
   },
   "dependencies": {
-    "test-inventory": "0.10.4"
+    "test-inventory": "0.11.0"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^1.0.1",

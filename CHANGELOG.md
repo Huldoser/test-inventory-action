@@ -1,5 +1,15 @@
 # test-inventory-action
 
+## 0.2.0
+
+### Minor Changes
+
+- Scans with [test-inventory 0.11.0](https://github.com/Huldoser/test-inventory/releases/tag/v0.11.0)
+  ([#8](https://github.com/Huldoser/test-inventory-action/pull/8)): projects on Playwright 1.31 to 1.41, Vitest 1
+  and 2, Jest 27 and 28, Jasmine 3, Cypress 10 to 12 and WebdriverIO 7 and 8 are scanned with their own rules instead
+  of getting an `unsupported-framework-version` warning, and tests in helpers, re-exported test objects and config
+  factories that 0.10.4 missed or misread are compared.
+
 ## 0.1.0
 
 ### Minor Changes
