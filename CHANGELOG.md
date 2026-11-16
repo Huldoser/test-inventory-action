@@ -5,9 +5,10 @@
 ### Patch Changes
 
 - Scan test files whose names hold glob characters, as Next.js route groups `app/(desk)/` and dynamic segments
-  `app/orders/[orderId]/`, on Windows runners too (PR_LINK): each character was escaped with a backslash, which
-  test-inventory reads as a folder separator on Windows, so those files were left out there. A backslash in a Linux or
-  macOS file name is now escaped too.
+  `app/orders/[orderId]/`, on Windows runners too
+  ([#10](https://github.com/Huldoser/test-inventory-action/pull/10)): each character was escaped with a backslash,
+  which test-inventory reads as a folder separator on Windows, so those files were left out there. A backslash in a
+  Linux or macOS file name is now escaped too.
 
 ## 0.2.0
 
