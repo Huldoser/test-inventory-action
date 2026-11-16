@@ -15,7 +15,7 @@ export interface RevisionScan {
  * first that sees tests in it without a config or as another framework's.
  */
 export async function scanRevision(root: string, discovery: Discovery, signal: AbortSignal): Promise<RevisionScan> {
-  const patterns = discovery.files.map((file) => file.replace(/[()[\]{}*?!+@]/g, '\\$&'));
+  const patterns = discovery.files.map(literalPattern);
   const scans: [Framework, Inventory][] = [];
   if (patterns.length > 0) {
     for (const framework of discovery.runners)
@@ -52,4 +52,12 @@ export async function scanRevision(root: string, discovery: Discovery, signal: A
     ]),
   );
   return { root, inventories, statuses };
+}
+
+/**
+ * A glob that matches only this file. Each glob character goes in a class of its own, as `[(]`: a backslash escape
+ * would be a folder separator on Windows, and a backslash in a Linux or macOS file name needs escaping too.
+ */
+export function literalPattern(file: string): string {
+  return file.replace(/[\\()[\]{}*?!+@]/g, (character) => `[${character === '\\' ? '\\\\' : character}]`);
 }
