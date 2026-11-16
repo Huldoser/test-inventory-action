@@ -5,7 +5,7 @@ const LIST_LIMIT = 50;
 const DOCS = 'https://huldoser.github.io/test-inventory';
 const README = 'https://github.com/Huldoser/test-inventory-action#readme';
 // The logo files of the release the action pins, so a comment keeps its logo whatever later changes on main.
-const ASSETS = 'https://raw.githubusercontent.com/Huldoser/test-inventory/v0.10.4/docs/public';
+const ASSETS = 'https://raw.githubusercontent.com/Huldoser/test-inventory/v0.11.0/docs/public';
 const MARK = `<picture><source media="(prefers-color-scheme: dark)" srcset="${ASSETS}/mark-small-dark.svg"><img src="${ASSETS}/mark-small-light.svg" alt="" width="20" height="20" align="top"></picture>`;
 /** Text from the scanned project, such as a title or a reason, shown as plain text: no Markdown, HTML or mention. */
 export function text(value) {
