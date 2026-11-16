@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { discover } from '../src/discover.ts';
-import { scanRevision } from '../src/scan.ts';
+import { literalPattern, scanRevision } from '../src/scan.ts';
 import { folder, write } from './project.ts';
 
 describe("a revision's scan", () => {
@@ -54,5 +54,28 @@ describe('a revision with a file two runners read', () => {
     });
     const scan = await scanRevision(root, discover(root), AbortSignal.timeout(60_000));
     expect(scan).toEqual({ root, inventories: {}, statuses: new Map() });
+  });
+});
+
+describe('a revision whose file names hold glob characters', () => {
+  it('scans test files in route groups and dynamic segments', async () => {
+    const root = folder();
+    write(root, {
+      'package.json': JSON.stringify({ devDependencies: { vitest: '5.0.5' } }),
+      'app/(desk)/watchlist.test.ts':
+        "import { test } from 'vitest';\ntest('adds a symbol to the watchlist', () => {});\n",
+      'app/orders/[orderId]/fill.test.ts': "import { test } from 'vitest';\ntest('fills a limit order', () => {});\n",
+    });
+    const scan = await scanRevision(root, discover(root), AbortSignal.timeout(60_000));
+    expect(scan.inventories.vitest?.tests.map((test) => [test.relativeFilePath, test.fullName])).toEqual([
+      ['app/(desk)/watchlist.test.ts', 'adds a symbol to the watchlist'],
+      ['app/orders/[orderId]/fill.test.ts', 'fills a limit order'],
+    ]);
+  });
+
+  it('writes each glob character, a backslash too, as a class that matches only itself on every system', () => {
+    expect(literalPattern('app/(desk)/orders/[orderId]/{fx}*?!+@ \\fill.test.ts')).toBe(
+      'app/[(]desk[)]/orders/[[]orderId[]]/[{]fx[}][*][?][!][+][@] [\\\\]fill.test.ts',
+    );
   });
 });
