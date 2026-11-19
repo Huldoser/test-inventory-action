@@ -1,5 +1,12 @@
 # test-inventory-action
 
+## 0.2.2
+
+### Patch Changes
+
+- Scan with [test-inventory 0.11.1](https://github.com/Huldoser/test-inventory/releases/tag/v0.11.1), which includes
+  parser fixes and counts imported test table rows even when some row values cannot be worked out.
+
 ## 0.2.1
 
 ### Patch Changes
