@@ -1,5 +1,11 @@
 # test-inventory-action
 
+## 0.2.3
+
+### Patch Changes
+
+- Scan with [test-inventory 0.12.0](https://github.com/Huldoser/test-inventory/releases/tag/v0.12.0). Vitest project entries resolve from their configured root. Changes to files matched by literal Vite module globs can appear under changed helpers.
+
 ## 0.2.2
 
 ### Patch Changes
