@@ -1,5 +1,11 @@
 # test-inventory-action
 
+## 0.2.4
+
+### Patch Changes
+
+- Scan with [test-inventory 0.12.1](https://github.com/Huldoser/test-inventory/releases/tag/v0.12.1). Reports include default Playwright specs discovered from package scripts and re-exported Vitest tests called with extra arguments.
+
 ## 0.2.3
 
 ### Patch Changes
