@@ -63,7 +63,7 @@ jobs:
         with:
           persist-credentials: false
       - id: tests
-        uses: Huldoser/test-inventory-action@1a971576a927060370e6a74ab307d0bf15b3eba8 # v0.2.3
+        uses: Huldoser/test-inventory-action@1d8d45aa8508609337773546bc2c8b994202ae0a # v0.2.4
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: test-inventory-report
@@ -86,7 +86,7 @@ jobs:
     if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
-      - uses: Huldoser/test-inventory-action@1a971576a927060370e6a74ab307d0bf15b3eba8 # v0.2.3
+      - uses: Huldoser/test-inventory-action@1d8d45aa8508609337773546bc2c8b994202ae0a # v0.2.4
         with:
           mode: comment
 ```
