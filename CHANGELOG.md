@@ -1,5 +1,11 @@
 # test-inventory-action
 
+## 0.2.5
+
+### Patch Changes
+
+- Scan with [test-inventory 0.12.2](https://github.com/Huldoser/test-inventory/releases/tag/v0.12.2). Pull request reports reflect fixes to Mocha file selection, Jasmine registration, Vitest suite modes and test titles in Jest and Bun tables.
+
 ## 0.2.4
 
 ### Patch Changes
