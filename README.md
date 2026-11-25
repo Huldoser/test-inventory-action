@@ -3,8 +3,11 @@
 Comments on each pull request with what it does to the tests, without running them.
 
 The action scans the pull request's base and head with [test-inventory](https://github.com/Huldoser/test-inventory),
-which reads Playwright, Vitest, Jest, Mocha, Jasmine, Cypress, WebdriverIO, node:test and Bun tests from source. It
-needs no build, no browsers and no install of your project, and it never fails a check.
+which reads Playwright, Vitest, Jest, Mocha, Jasmine, Cypress, WebdriverIO, node:test and Bun tests from source. Typical
+suites scan in under a second, with no build, no browsers and no install of your project, and the action never fails a
+check.
+
+Available on [GitHub Marketplace](https://github.com/marketplace/actions/test-changes-by-test-inventory) · [Documentation](https://huldoser.github.io/test-inventory/)
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/comment-dark.png">
@@ -46,8 +49,9 @@ on pull requests from forks. Keep your reporter for failures and timings: the tw
 
 ## Usage
 
-Two workflows: one scans with read-only access, and one posts the comment once the scan has finished. The second one
-never checks out the pull request's code, so the comment works for pull requests from forks too.
+**Why two workflows?** The first workflow scans with read-only permissions, and the second posts the comment without
+ever checking out pull request code. That split keeps `pull-requests: write` isolated so comments work safely on pull
+requests from forks too.
 
 ```yaml
 # .github/workflows/test-changes.yml
@@ -75,7 +79,7 @@ jobs:
 # .github/workflows/test-changes-comment.yml
 name: Test changes comment
 on:
-  workflow_run: # zizmor: ignore[dangerous-triggers]
+  workflow_run:
     workflows: [Test changes]
     types: [completed]
 permissions:
@@ -101,8 +105,9 @@ GitHub for with the job's token.
 The comment workflow reads the report the scan uploaded as data and checks it field by field. It posts only if the
 pull request is still at the commit that was scanned, and only edits a comment a bot wrote.
 
-zizmor's `dangerous-triggers` audit flags every `workflow_run` workflow. This one checks out no code, reads the report
-as data and posts only for the commit that was scanned, so the example ignores that finding on its trigger line.
+If your repository runs [zizmor](https://docs.zizmor.sh/), its `dangerous-triggers` audit flags every `workflow_run`
+trigger; because this workflow checks out no code, reads the report strictly as data and checks the pull request head
+commit, you can add `# zizmor: ignore[dangerous-triggers]` on the `workflow_run:` line.
 
 ### Pull requests from forks
 
@@ -151,6 +156,12 @@ The scan reads source and configs; it runs nothing. These are out of its reach:
 
 Node.js 22.12 or newer on the runner, which every GitHub-hosted image has. Self-hosted runners may need
 `actions/setup-node` first. The action needs network access to npm to install test-inventory.
+
+## Part of test-inventory
+
+- [test-inventory](https://github.com/Huldoser/test-inventory): CLI and Node.js library (`npx test-inventory`).
+- [test-inventory-mcp](https://github.com/Huldoser/test-inventory-mcp): MCP server for Claude Code, Cursor, VS Code and other AI clients.
+- [Documentation](https://huldoser.github.io/test-inventory/): framework guides, query recipes and output reference.
 
 ## License
 
