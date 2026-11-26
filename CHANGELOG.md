@@ -1,5 +1,11 @@
 # test-inventory-action
 
+## 0.2.6
+
+### Patch Changes
+
+- Clarify which workflow scans pull requests and which posts the report, and link to the CLI and MCP server.
+
 ## 0.2.5
 
 ### Patch Changes
